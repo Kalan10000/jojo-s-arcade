@@ -1385,7 +1385,8 @@
             const scores = window.arcadeAuth.getUserHighScores();
 
             let html = '';
-            MAIN_ARCADE_CONFIGS.concat(SECRET_CABINET_CONFIG).forEach(cab => {
+            // Excludes SECRET_CABINET_CONFIG so Kalan's Games doesn't show up here
+            MAIN_ARCADE_CONFIGS.forEach(cab => {
                 if (cab.isAuth) return;
                 const score = scores[cab.id] || 0;
                 html += `
