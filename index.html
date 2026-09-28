@@ -1401,8 +1401,9 @@
             const delta = Math.min(clock.getDelta(), 0.1);
             const elapsedTime = clock.getElapsedTime();
 
+            // Slower door opening transition (~3 seconds)
             if (exitDoor.isOpen && exitDoor.currentRotation < Math.PI * 0.52) {
-                exitDoor.currentRotation += delta * 3.5;
+                exitDoor.currentRotation += delta * 0.55;
                 if (exitDoor.currentRotation > Math.PI * 0.52) {
                     exitDoor.currentRotation = Math.PI * 0.52;
                 }
