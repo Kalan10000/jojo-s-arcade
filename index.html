@@ -66,7 +66,7 @@
     <!-- FPS Reticle -->
     <div id="crosshair" class="pointer-events-none fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 w-3 h-3 rounded-full border border-cyan-400 bg-cyan-400/20 transition-all duration-150"></div>
 
-    <!-- Minimal Instruction Banner -->
+    <!-- Banner Instructions -->
     <div id="click-hint-banner" class="fixed top-5 left-1/2 -translate-x-1/2 z-30 pointer-events-none transition-opacity duration-500">
         <div class="glass-panel px-5 py-2 rounded-xl border border-slate-700 shadow-lg flex items-center space-x-3 text-xs font-orbitron">
             <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
@@ -98,8 +98,9 @@
     </div>
 
     <script>
+        // Vous pouvez ajouter autant de jeux que vous souhaitez ici, la salle s'allongera automatiquement !
         const MAIN_ARCADE_CONFIGS = [
-            { id: 0, title: "LABYRINTHE", category: "Labyrinthe", url: "https://labyrintheajojo.vercel.app/", color: "#ff0055" },
+            { id: 0, title: "LABYRINTHE", category: "Labyrinthe 3D", url: "https://labyrintheajojo.vercel.app/", color: "#ff0055" },
             { id: 1, title: "TOUR INFINIE", category: "Tour infinie", url: "https://tourinfinie.vercel.app", color: "#00f3ff" },
             { id: 2, title: "NEON OVERDRIVE", category: "Neon overdrive", url: "https://neonoverdrive.vercel.app", color: "#39ff14" },
             { id: 3, title: "SPACIAL MASTER", category: "Spacial master", url: "https://spacialmaster.vercel.app", color: "#bf00ff" },
@@ -116,11 +117,13 @@
             isSecret: true
         };
 
-        const totalRows = Math.ceil(MAIN_ARCADE_CONFIGS.length / 2);
+        // calcul dynamique de la taille de la salle selon le nombre de jeux
+        const totalRows = Math.max(1, Math.ceil(MAIN_ARCADE_CONFIGS.length / 2));
         const rowSpacing = 4.0;
         const firstRowZ = 3.0;
         const lastRowZ = firstRowZ + (totalRows - 1) * rowSpacing;
         
+        // La porte de sortie et la fin de la salle reculent automatiquement avec lastRowZ
         const frontZ = lastRowZ + 4.0;
         const backWallZ = -1.0;
         const secretRoomZ = -5.0;
@@ -139,6 +142,7 @@
 
         let pitch = 0;
         let yaw = 0;
+        // Le spawnpoint s'adapte automatiquement juste devant la porte de sortie
         const playerPos = new THREE.Vector3(0, 1.13, frontZ - 1.5);
         const playerRadius = 0.35;
         const walkSpeed = 5.5;
@@ -244,6 +248,7 @@
             dirLight.position.set(0, 10, 4);
             scene.add(dirLight);
 
+            // Éclairage distribué dynamiquement le long de tout le couloir
             const lightCount = Math.max(2, totalRows);
             for (let i = 0; i < lightCount; i++) {
                 const zPos = 3.0 + i * 4.0;
@@ -303,6 +308,7 @@
             rightWall.position.set(7.5, 2.6, hallCenterZ);
             scene.add(rightWall);
 
+            // Mur avant s'ajuste dynamiquement sur frontZ
             const frontWallLeft = new THREE.Mesh(new THREE.BoxGeometry(6.6, 5.2, 0.3), wallMat);
             frontWallLeft.position.set(-4.2, 2.6, frontZ);
             scene.add(frontWallLeft);
@@ -365,7 +371,6 @@
 
             doorGroup.add(pivotGroup);
 
-            // Exit Sign above door (Panneau de Sortie)
             const exitCanvas = document.createElement('canvas');
             exitCanvas.width = 512;
             exitCanvas.height = 128;
@@ -1130,12 +1135,12 @@
 
                     <div class="relative z-10 glass-panel p-8 md:p-12 rounded-3xl border border-pink-500/40 shadow-[0_0_50px_rgba(255,0,127,0.25)] max-w-lg w-full flex flex-col items-center">
                         
-                        <!-- ANIMATED UP ARROW ON TOP OF TEXT -->
+                        <!-- FLÈCHE VERS LE HAUT ANIMEÉ -->
                         <div class="text-5xl md:text-6xl text-pink-500 mb-6 animate-float-up drop-shadow-[0_0_20px_rgba(255,0,127,0.8)]">
                             <i class="fa-solid fa-arrow-up"></i>
                         </div>
 
-                        <!-- EXPLICIT EXIT TEXT IN FRENCH -->
+                        <!-- TEXTE DE SORTIE EN FRANÇAIS -->
                         <h1 class="text-lg md:text-xl font-black text-white tracking-wider leading-relaxed mb-8 uppercase text-cyan-300 drop-shadow-[0_0_10px_rgba(0,240,255,0.4)]">
                             vous voulez quitter le jeu ? alors cliquez sur le bouton fermer
                         </h1>
