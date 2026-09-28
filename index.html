@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full w-full overflow-hidden">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JOJO'S ARCADE</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts: Orbitron & Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Three.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #030108;
+            color: #ffffff;
+            user-select: none;
+        }
+
+        .font-orbitron {
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        /* Neon Glow Utility Classes */
+        .neon-text-pink {
+            text-shadow: 0 0 5px #ff007f, 0 0 10px #ff007f, 0 0 20px #ff007f, 0 0 40px #ff007f;
+        }
+        .neon-text-cyan {
+            text-shadow: 0 0 5px #00f0ff, 0 0 10px #00f0ff, 0 0 20px #00f0ff, 0 0 40px #00f0ff;
+        }
+        .neon-border-pink {
+            box-shadow: 0 0 15px #ff007f, inset 0 0 10px #ff007f;
+            border-color: #ff007f;
+        }
+        .neon-border-cyan {
+            box-shadow: 0 0 15px #00f0ff, inset 0 0 10px #00f0ff;
+            border-color: #00f0ff;
+        }
+
+        /* Glassmorphism Styling */
+        .glass-panel {
+            background: rgba(10, 5, 24, 0.85);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        /* CRT Scanline Texture Overlay */
+        .scanlines {
+            background: linear-gradient(
+                rgba(18, 16, 16, 0) 50%, 
+                rgba(0, 0, 0, 0.3) 50%
+            );
+            background-size: 100% 4px;
+        }
+
+        /* Reticle Pulse Animation */
+        @keyframes reticlePulse {
+            0% { transform: translate(-50%, -50%) scale(1); opacity: 0.85; }
+            50% { transform: translate(-50%, -50%) scale(1.3); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 0.85; }
+        }
+
+        .reticle-active {
+            animation: reticlePulse 1.1s infinite ease-in-out;
+            background-color: #00f0ff !important;
+            box-shadow: 0 0 14px #00f0ff, 0 0 28px #00f0ff !important;
+        }
+    </style>
+</head>
+<body class="h-full w-full relative overflow-hidden bg-black select-none">
+
+    <!-- 3D Canvas Container -->
+    <div id="canvas-container" class="absolute inset-0 w-full h-full z-0 cursor-crosshair"></div>
+
+    <!-- Retro CRT Scanline Overlay -->
+    <div class="pointer-events-none absolute inset-0 z-10 scanlines opacity-30"></div>
+
+    <!-- FPS Center Crosshair Reticle -->
+    <div id="crosshair" class="pointer-events-none fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 w-3.5 h-3.5 rounded-full border-2 border-cyan-400 bg-cyan-400/30 transition-all duration-150"></div>
+
+    <!-- Minimal Floating Controls Hint Banner -->
+    <div id="click-hint-banner" class="fixed top-6 left-1/2 -translate-x-1/2 z-30 pointer-events-none transition-opacity duration-500">
+        <div class="glass-panel px-6 py-2.5 rounded-2xl border border-pink-500/50 shadow-2xl shadow-pink-500/20 flex items-center space-x-3 text-xs md:text-sm font-orbitron">
+            <span class="w-2.5 h-2.5 rounded-full bg-pink-500 animate-ping"></span>
+            <span class="text-pink-300 font-bold">CLICK ANYWHERE TO LOOK & WALK</span>
+            <span class="text-slate-500">|</span>
+            <span class="text-cyan-300"><i class="fa-solid fa-keyboard mr-1"></i> WASD to move</span>
+            <span class="text-slate-500">|</span>
+            <span class="text-yellow-300"><i class="fa-solid fa-mouse mr-1"></i> Click cabinet to launch URL</span>
+        </div>
+    </div>
+
+    <!-- HUD TARGET PROMPT (Appears when looking at an arcade cabinet) -->
+    <div id="hud-prompt" class="pointer-events-none fixed top-1/2 left-1/2 -translate-x-1/2 translate-y-10 z-30 opacity-0 transition-all duration-300 transform scale-95 glass-panel px-6 py-3 rounded-2xl border border-cyan-400/60 shadow-2xl shadow-cyan-500/30 text-center">
+        <div class="flex items-center justify-center space-x-2 mb-1">
+            <span id="hud-category" class="px-2.5 py-0.5 rounded-full text-[10px] font-orbitron uppercase tracking-widest bg-pink-500/20 text-pink-300 border border-pink-500/40">CATEGORY</span>
+        </div>
+        <h3 id="hud-title" class="font-orbitron font-black text-lg md:text-xl text-white neon-text-cyan">GAME TITLE</h3>
+        <p id="hud-url" class="text-xs font-mono text-cyan-300 truncate max-w-xs mb-2">https://example.com</p>
+        <div id="hud-button-badge" class="inline-flex items-center space-x-2 bg-pink-600/30 px-3 py-1 rounded-xl border border-pink-500/50 text-pink-300 text-[11px] font-orbitron animate-pulse">
+            <i class="fa-solid fa-arrow-pointer"></i>
+            <span>CLICK OR PRESS [E] TO LAUNCH</span>
+        </div>
+    </div>
+
+    <!-- Synthwave Audio Toggle Button -->
+    <div class="fixed bottom-5 right-5 z-30">
+        <button id="btn-audio" onclick="toggleAudio()" class="p-3.5 rounded-2xl glass-panel text-slate-300 hover:text-cyan-400 border border-slate-700/80 hover:border-cyan-400/60 transition shadow-xl flex items-center space-x-2 text-xs font-orbitron">
+            <i id="audio-icon" class="fa-solid fa-volume-xmark text-pink-500 text-base"></i>
+            <span id="audio-text" class="hidden sm:inline">SYNTH MUSIC</span>
+        </button>
+    </div>
+
+    <script>
+        // ====================================================================
+        // 1. CONFIGURABLE ARCADE CABINETS ARRAY (EASILY ADD/EDIT URLS HERE)
+        // ====================================================================
+        const ARCADE_CONFIGS = [
+            { id: 0, title: "CYBER RUNNER", category: "Action Arcade", url: "https://example.com/cyber-runner", color: "#ff0055" },
+            { id: 1, title: "NEON WAVE", category: "Rhythm Racer", url: "https://example.com/neon-wave", color: "#00f3ff" },
+            { id: 2, title: "ASTRO SHIELD", category: "Space Shooter", url: "https://example.com/astro-shield", color: "#39ff14" },
+            { id: 3, title: "SYNTH GRID", category: "Puzzle Matrix", url: "https://example.com/synth-grid", color: "#bf00ff" },
+            { id: 4, title: "VOCO BLASTER", category: "Retro Shooter", url: "https://example.com/voco-blaster", color: "#ffcc00" },
+            { id: 5, title: "PONG ODYSSEY", category: "Classic Physics", url: "https://example.com/pong-odyssey", color: "#ff00aa" }
+        ];
+
+        // Global Scene & Engine Variables
+        let scene, camera, renderer;
+        let arcadeCabinets = [];
+        let raycaster, centerRayVector;
+
+        // FPS Movement & Orientation State
+        let moveForward = false;
+        let moveBackward = false;
+        let moveLeft = false;
+        let moveRight = false;
+        let isPointerLocked = false;
+
+        // Yaw = 0 faces down -Z (180 degrees into arcade hall toward back wall)
+        let pitch = 0;
+        let yaw = 0; 
+        const playerPos = new THREE.Vector3(0, 1.7, 12); // Player spawn position
+        const playerRadius = 0.6; // Collision radius
+        const walkSpeed = 7.5;
+
+        // Target Interactive Cabinet
+        let targetCabinet = null;
+
+        // Web Audio Synthesizer State
+        let audioCtx = null;
+        let isAudioPlaying = false;
+        let synthArpTimer = null;
+        let stepSoundCooldown = 0;
+
+        // ====================================================================
+        // 2. AUDIO SYNTHESIZER & SFX
+        // ====================================================================
+        function initAudio() {
+            if (audioCtx) return;
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            audioCtx = new AudioContext();
+        }
+
+        function playSynthBeep(freq = 440, duration = 0.1, type = 'square', volume = 0.1) {
+            if (!audioCtx || audioCtx.state === 'suspended') return;
+            try {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                gain.gain.setValueAtTime(volume, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + duration);
+            } catch (e) { console.error("Audio error:", e); }
+        }
+
+        function playCoinSound() {
+            if (!audioCtx) initAudio();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            playSynthBeep(987.77, 0.08, 'sine', 0.2); // B5
+            setTimeout(() => playSynthBeep(1318.51, 0.25, 'triangle', 0.25), 80); // E6
+        }
+
+        function playFootstepSound() {
+            if (!audioCtx || audioCtx.state === 'suspended') return;
+            playSynthBeep(110 + Math.random() * 30, 0.04, 'triangle', 0.02);
+        }
+
+        function toggleAudio() {
+            initAudio();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+
+            isAudioPlaying = !isAudioPlaying;
+            const btn = document.getElementById('btn-audio');
+            const icon = document.getElementById('audio-icon');
+
+            if (isAudioPlaying) {
+                btn.classList.add('neon-border-cyan', 'text-cyan-400');
+                icon.className = 'fa-solid fa-volume-high text-cyan-400 animate-pulse';
+                startSynthwaveTrack();
+            } else {
+                btn.classList.remove('neon-border-cyan', 'text-cyan-400');
+                icon.className = 'fa-solid fa-volume-xmark text-pink-500';
+                stopSynthwaveTrack();
+            }
+        }
+
+        function startSynthwaveTrack() {
+            if (!audioCtx) return;
+            const notes = [110, 110, 130.81, 110, 146.83, 130.81, 98, 110]; // Bassline notes
+            let step = 0;
+            
+            synthArpTimer = setInterval(() => {
+                if (!isAudioPlaying) return;
+                const freq = notes[step % notes.length];
+                playSynthBeep(freq, 0.15, 'sawtooth', 0.035);
+                if (step % 2 === 0) {
+                    playSynthBeep(440, 0.04, 'triangle', 0.015);
+                }
+                step++;
+            }, 180);
+        }
+
+        function stopSynthwaveTrack() {
+            if (synthArpTimer) clearInterval(synthArpTimer);
+        }
+
+        // ====================================================================
+        // 3. THREE.JS 3D ENVIRONMENT SETUP
+        // ====================================================================
+        function init3DScene() {
+            const container = document.getElementById('canvas-container');
+
+            // Scene setup
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x030108);
+            scene.fog = new THREE.FogExp2(0x030108, 0.032);
+
+            // Camera setup
+            camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 100);
+            camera.position.copy(playerPos);
+
+            // Yaw = 0 points facing into the room towards back wall (-Z)
+            const euler = new THREE.Euler(pitch, yaw, 0, 'YXZ');
+            camera.quaternion.setFromEuler(euler);
+
+            // Renderer setup
+            renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.25;
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            container.appendChild(renderer.domElement);
+
+            // Raycaster for targeting center of screen
+            raycaster = new THREE.Raycaster();
+            centerRayVector = new THREE.Vector2(0, 0);
+
+            // Environment Lighting & Architecture
+            setupLighting();
+            setupArcadeRoomEnvironment();
+
+            // Build Cabinets based on ARCADE_CONFIGS array
+            buildArcadeHallCabinets();
+
+            // FPS Controls & Pointer Lock
+            setupFPSControls();
+
+            // Window Resize listener
+            window.addEventListener('resize', onWindowResize);
+
+            // Start animation loop immediately
+            animate();
+        }
+
+        function setupLighting() {
+            // Ambient violet lighting
+            const ambient = new THREE.AmbientLight(0x2d1448, 1.5);
+            scene.add(ambient);
+
+            // Overhead Corridor Neon Light Strips
+            for (let z = -14; z <= 14; z += 7) {
+                const pLight = new THREE.PointLight(z % 14 === 0 ? 0x00f0ff : 0xff007f, 1.8, 12);
+                pLight.position.set(0, 5.5, z);
+                scene.add(pLight);
+            }
+        }
+
+        function setupArcadeRoomEnvironment() {
+            // 1. Reflective Neon Floor Grid
+            const floorGeo = new THREE.PlaneGeometry(24, 40);
+
+            const gridCanvas = document.createElement('canvas');
+            gridCanvas.width = 512;
+            gridCanvas.height = 512;
+            const ctx = gridCanvas.getContext('2d');
+            ctx.fillStyle = '#060210';
+            ctx.fillRect(0, 0, 512, 512);
+            ctx.strokeStyle = '#ff007f';
+            ctx.lineWidth = 4;
+
+            const step = 64;
+            for (let x = 0; x <= 512; x += step) {
+                ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 512); ctx.stroke();
+            }
+            for (let y = 0; y <= 512; y += step) {
+                ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(512, y); ctx.stroke();
+            }
+
+            const floorTexture = new THREE.CanvasTexture(gridCanvas);
+            floorTexture.wrapS = THREE.RepeatWrapping;
+            floorTexture.wrapT = THREE.RepeatWrapping;
+            floorTexture.repeat.set(12, 20);
+
+            const floorMat = new THREE.MeshStandardMaterial({
+                map: floorTexture,
+                roughness: 0.12,
+                metalness: 0.85,
+                emissive: 0x120022,
+                emissiveIntensity: 0.3
+            });
+
+            const floor = new THREE.Mesh(floorGeo, floorMat);
+            floor.rotation.x = -Math.PI / 2;
+            floor.position.set(0, 0, 0);
+            scene.add(floor);
+
+            // 2. Ceiling
+            const ceilingMat = new THREE.MeshStandardMaterial({ color: 0x080414, roughness: 0.8 });
+            const ceiling = new THREE.Mesh(floorGeo, ceilingMat);
+            ceiling.rotation.x = Math.PI / 2;
+            ceiling.position.set(0, 6.5, 0);
+            scene.add(ceiling);
+
+            // Ceiling Neon Beams
+            for (let z = -18; z <= 18; z += 6) {
+                const beamGeo = new THREE.BoxGeometry(20, 0.12, 0.25);
+                const beamMat = new THREE.MeshBasicMaterial({ color: z % 12 === 0 ? 0x00f0ff : 0xff007f });
+                const beam = new THREE.Mesh(beamGeo, beamMat);
+                beam.position.set(0, 6.4, z);
+                scene.add(beam);
+            }
+
+            // 3. Walls
+            const wallMat = new THREE.MeshStandardMaterial({ color: 0x0a0518, roughness: 0.6 });
+            
+            // Left Wall
+            const leftWall = new THREE.Mesh(new THREE.PlaneGeometry(40, 6.5), wallMat);
+            leftWall.position.set(-10, 3.25, 0);
+            leftWall.rotation.y = Math.PI / 2;
+            scene.add(leftWall);
+
+            // Right Wall
+            const rightWall = new THREE.Mesh(new THREE.PlaneGeometry(40, 6.5), wallMat);
+            rightWall.position.set(10, 3.25, 0);
+            rightWall.rotation.y = -Math.PI / 2;
+            scene.add(rightWall);
+
+            // Back Wall
+            const backWall = new THREE.Mesh(new THREE.PlaneGeometry(20, 6.5), wallMat);
+            backWall.position.set(0, 3.25, -20);
+            scene.add(backWall);
+
+            // Front Entrance Wall
+            const frontWall = new THREE.Mesh(new THREE.PlaneGeometry(20, 6.5), wallMat);
+            frontWall.position.set(0, 3.25, 20);
+            frontWall.rotation.y = Math.PI;
+            scene.add(frontWall);
+
+            // Wall Neon Horizontal Trims
+            const wallTrimGeo = new THREE.BoxGeometry(0.1, 0.1, 40);
+            const wallTrimLeft = new THREE.Mesh(wallTrimGeo, new THREE.MeshBasicMaterial({ color: 0x00f0ff }));
+            wallTrimLeft.position.set(-9.9, 3.5, 0);
+            scene.add(wallTrimLeft);
+
+            const wallTrimRight = new THREE.Mesh(wallTrimGeo, new THREE.MeshBasicMaterial({ color: 0xff007f }));
+            wallTrimRight.position.set(9.9, 3.5, 0);
+            scene.add(wallTrimRight);
+
+            // Back Wall Neon Sign: "JOJO'S ARCADE"
+            createNeonSign(0, 4.2, -19.9, 0);
+            createNeonSign(0, 4.2, 19.9, Math.PI);
+        }
+
+        function createNeonSign(x, y, z, rotY) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 1024;
+            canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+
+            ctx.fillStyle = '#05020a';
+            ctx.fillRect(0, 0, 1024, 256);
+
+            ctx.shadowColor = '#00f0ff';
+            ctx.shadowBlur = 30;
+            ctx.font = '900 88px "Orbitron", sans-serif';
+            ctx.fillStyle = '#ffffff';
+            ctx.textAlign = 'center';
+            ctx.fillText("JOJO'S ARCADE", 512, 110);
+
+            ctx.shadowColor = '#ff007f';
+            ctx.shadowBlur = 35;
+            ctx.fillStyle = '#ff007f';
+            ctx.font = '700 38px "Orbitron", sans-serif';
+            ctx.fillText('SELECT A CABINET TO ENTER PORTAL', 512, 190);
+
+            const signTexture = new THREE.CanvasTexture(canvas);
+            const signMat = new THREE.MeshBasicMaterial({ map: signTexture, transparent: true });
+            const signMesh = new THREE.Mesh(new THREE.PlaneGeometry(16, 4), signMat);
+            signMesh.position.set(x, y, z);
+            signMesh.rotation.y = rotY;
+            scene.add(signMesh);
+        }
+
+        // ====================================================================
+        // 4. PROCEDURAL 3D ARCADE CABINETS GENERATOR
+        // ====================================================================
+        function buildArcadeHallCabinets() {
+            arcadeCabinets = [];
+            const spacingZ = 6.0;
+
+            ARCADE_CONFIGS.forEach((data, index) => {
+                const isLeft = index % 2 === 0;
+                const row = Math.floor(index / 2);
+
+                const posX = isLeft ? -7.0 : 7.0;
+                const posZ = 6.0 - (row * spacingZ);
+                const rotY = isLeft ? Math.PI / 2.3 : -Math.PI / 2.3;
+
+                const cabinetData = createCabinetMesh(data, index);
+                const group = cabinetData.group;
+
+                group.position.set(posX, 0, posZ);
+                group.rotation.y = rotY;
+
+                scene.add(group);
+
+                // Dedicated light source in cabinet's custom neon color
+                const colorHex = parseInt(data.color.replace('#', '0x'));
+                const cabLight = new THREE.PointLight(colorHex, 1.6, 6);
+                cabLight.position.set(posX, 2.2, posZ);
+                scene.add(cabLight);
+
+                arcadeCabinets.push({
+                    id: data.id,
+                    config: data,
+                    group: group,
+                    screenMesh: cabinetData.screenMesh,
+                    screenCanvas: cabinetData.screenCanvas,
+                    screenCtx: cabinetData.screenCtx,
+                    joystickMesh: cabinetData.joystickMesh,
+                    light: cabLight,
+                    minX: posX - 1.8,
+                    maxX: posX + 1.8,
+                    minZ: posZ - 1.8,
+                    maxZ: posZ + 1.8
+                });
+            });
+        }
+
+        function createCabinetMesh(data, index) {
+            const group = new THREE.Group();
+            const mainColorHex = parseInt(data.color.replace('#', '0x'));
+
+            const bodyMat = new THREE.MeshStandardMaterial({ color: 0x120d22, roughness: 0.4, metalness: 0.6 });
+            const sidePanelMat = new THREE.MeshStandardMaterial({ color: 0x1a1230, roughness: 0.3 });
+            const neonMat = new THREE.MeshStandardMaterial({ color: mainColorHex, emissive: mainColorHex, emissiveIntensity: 0.8 });
+
+            // Base Cabinet Body
+            const baseGeo = new THREE.BoxGeometry(1.4, 2.2, 1.2);
+            const baseMesh = new THREE.Mesh(baseGeo, bodyMat);
+            baseMesh.position.y = 1.1;
+            group.add(baseMesh);
+
+            // Side Panel Extrusions
+            const sideShape = new THREE.Shape();
+            sideShape.moveTo(0, 0);
+            sideShape.lineTo(0, 3.2);
+            sideShape.lineTo(1.2, 3.2);
+            sideShape.lineTo(1.2, 2.2);
+            sideShape.lineTo(1.5, 1.6);
+            sideShape.lineTo(1.5, 0);
+            sideShape.closePath();
+
+            const extrudeSettings = { depth: 0.05, bevelEnabled: true, bevelSegments: 2, steps: 1, bevelSize: 0.02, bevelThickness: 0.02 };
+            const sideGeo = new THREE.ExtrudeGeometry(sideShape, extrudeSettings);
+
+            const leftSide = new THREE.Mesh(sideGeo, sidePanelMat);
+            leftSide.position.set(-0.73, 0, -0.6);
+            group.add(leftSide);
+
+            const rightSide = new THREE.Mesh(sideGeo, sidePanelMat);
+            rightSide.position.set(0.68, 0, -0.6);
+            group.add(rightSide);
+
+            // Neon Side Trim Lines
+            const trimGeo = new THREE.BoxGeometry(0.04, 3.2, 0.04);
+            const trimL = new THREE.Mesh(trimGeo, neonMat);
+            trimL.position.set(-0.74, 1.6, 0.88);
+            group.add(trimL);
+
+            const trimR = new THREE.Mesh(trimGeo, neonMat);
+            trimR.position.set(0.74, 1.6, 0.88);
+            group.add(trimR);
+
+            // CRT Screen Housing
+            const screenFrame = new THREE.Mesh(new THREE.BoxGeometry(1.28, 1.1, 0.1), bodyMat);
+            screenFrame.position.set(0, 2.2, 0.25);
+            screenFrame.rotation.x = -0.22;
+            group.add(screenFrame);
+
+            // CRT Screen Canvas Mesh
+            const screenCanvas = document.createElement('canvas');
+            screenCanvas.width = 512;
+            screenCanvas.height = 384;
+            const screenCtx = screenCanvas.getContext('2d');
+
+            const screenTexture = new THREE.CanvasTexture(screenCanvas);
+            const screenMat = new THREE.MeshBasicMaterial({ map: screenTexture });
+
+            const screenMesh = new THREE.Mesh(new THREE.PlaneGeometry(1.18, 0.95), screenMat);
+            screenMesh.position.set(0, 2.2, 0.31);
+            screenMesh.rotation.x = -0.22;
+            group.add(screenMesh);
+
+            // Attach Metadata for Raycasting Target
+            screenMesh.userData = { cabinetId: data.id };
+            baseMesh.userData = { cabinetId: data.id };
+
+            // Illuminated Marquee Header
+            const marqueeCanvas = document.createElement('canvas');
+            marqueeCanvas.width = 512;
+            marqueeCanvas.height = 128;
+            const mCtx = marqueeCanvas.getContext('2d');
+
+            mCtx.fillStyle = '#080312';
+            mCtx.fillRect(0, 0, 512, 128);
+            mCtx.strokeStyle = data.color;
+            mCtx.lineWidth = 10;
+            mCtx.strokeRect(5, 5, 502, 118);
+
+            mCtx.shadowColor = data.color;
+            mCtx.shadowBlur = 18;
+            mCtx.fillStyle = '#ffffff';
+            mCtx.font = 'bold 42px "Orbitron", sans-serif';
+            mCtx.textAlign = 'center';
+            mCtx.fillText(data.title, 256, 75);
+
+            const marqueeTexture = new THREE.CanvasTexture(marqueeCanvas);
+            const marqueeMesh = new THREE.Mesh(new THREE.BoxGeometry(1.28, 0.45, 0.2), new THREE.MeshBasicMaterial({ map: marqueeTexture }));
+            marqueeMesh.position.set(0, 2.95, 0.35);
+            group.add(marqueeMesh);
+
+            // Control Deck & Joystick
+            const deck = new THREE.Mesh(new THREE.BoxGeometry(1.28, 0.1, 0.55), bodyMat);
+            deck.position.set(0, 1.48, 0.5);
+            deck.rotation.x = 0.25;
+            group.add(deck);
+
+            const stickGroup = new THREE.Group();
+            const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.18), new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 0.9 }));
+            shaft.position.y = 0.09;
+
+            const ball = new THREE.Mesh(new THREE.SphereGeometry(0.05, 16, 16), neonMat);
+            ball.position.y = 0.18;
+
+            stickGroup.add(shaft);
+            stickGroup.add(ball);
+            stickGroup.position.set(-0.35, 1.55, 0.55);
+            group.add(stickGroup);
+
+            // Illuminated Buttons
+            const btnColors = [0xff0055, 0x00f0ff, 0xffe600, 0x39ff14];
+            for (let b = 0; b < 4; b++) {
+                const btnMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.03, 16), new THREE.MeshStandardMaterial({
+                    color: btnColors[b],
+                    emissive: btnColors[b],
+                    emissiveIntensity: 0.7
+                }));
+                btnMesh.position.set(0.05 + (b % 2) * 0.12, 1.54 + Math.floor(b / 2) * 0.02, 0.5 + Math.floor(b / 2) * 0.12);
+                btnMesh.rotation.x = 0.25;
+                group.add(btnMesh);
+            }
+
+            // Coin Slots
+            const coinDoor = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.5, 0.05), sidePanelMat);
+            coinDoor.position.set(0, 0.85, 0.61);
+            group.add(coinDoor);
+
+            for (let c = -1; c <= 1; c += 2) {
+                const slot = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.12, 0.02), new THREE.MeshStandardMaterial({ color: 0xff0022, emissive: 0xff0022, emissiveIntensity: 1 }));
+                slot.position.set(c * 0.1, 0.9, 0.64);
+                group.add(slot);
+            }
+
+            return { group, screenMesh, screenCanvas, screenCtx, joystickMesh: stickGroup };
+        }
+
+        // ====================================================================
+        // 5. UNIFIED COLOR-ADAPTIVE CRT SCREEN GRAPHICS
+        // ====================================================================
+        function updateScreenTextures(time) {
+            arcadeCabinets.forEach((cab) => {
+                const ctx = cab.screenCtx;
+                const width = 512;
+                const height = 384;
+                const config = cab.config;
+
+                // Render ONE unified animation loop dynamically adapted to cabinet's theme color
+                renderAdaptiveArcadeScreen(ctx, width, height, time, config);
+
+                cab.screenMesh.material.map.needsUpdate = true;
+            });
+        }
+
+        function renderAdaptiveArcadeScreen(ctx, width, height, time, config) {
+            const primaryColor = config.color || '#ff007f';
+
+            // Dark Synth Backdrop
+            ctx.fillStyle = '#04010a';
+            ctx.fillRect(0, 0, width, height);
+
+            // 1. Perspective Synth Grid (Colored in Cabinet Theme Color)
+            ctx.save();
+            ctx.strokeStyle = primaryColor;
+            ctx.lineWidth = 1.5;
+            ctx.globalAlpha = 0.45;
+            const horizon = height * 0.52;
+
+            // Perspective lines
+            for (let x = -width; x <= width * 2; x += 35) {
+                ctx.beginPath();
+                ctx.moveTo(width / 2, horizon);
+                ctx.lineTo(x, height);
+                ctx.stroke();
+            }
+
+            // Horizontal moving grid lines
+            const gridOffset = (time * 65) % 20;
+            for (let y = horizon; y < height; y += 12) {
+                const drawY = y + gridOffset;
+                if (drawY < height) {
+                    ctx.beginPath();
+                    ctx.moveTo(0, drawY);
+                    ctx.lineTo(width, drawY);
+                    ctx.stroke();
+                }
+            }
+            ctx.restore();
+
+            // 2. Animated Audio Wave Visualizer Line in Primary Theme Color
+            ctx.save();
+            ctx.strokeStyle = primaryColor;
+            ctx.shadowColor = primaryColor;
+            ctx.shadowBlur = 18;
+            ctx.lineWidth = 3.5;
+            ctx.beginPath();
+            const waveCenter = height * 0.38;
+            for (let x = 0; x <= width; x += 8) {
+                const wave1 = Math.sin(x * 0.02 + time * 4.5) * 22;
+                const wave2 = Math.cos(x * 0.05 - time * 3.2) * 12;
+                const y = waveCenter + wave1 + wave2;
+                if (x === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+
+            // Secondary White Overlay Wave Line
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 1.2;
+            ctx.beginPath();
+            for (let x = 0; x <= width; x += 10) {
+                const wave1 = Math.sin(x * 0.035 - time * 5) * 14;
+                const y = waveCenter + wave1;
+                if (x === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+            ctx.restore();
+
+            // 3. Glowing Synth Sun / Emblem behind Title
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(width / 2, height * 0.3, 36, 0, Math.PI * 2);
+            ctx.fillStyle = primaryColor;
+            ctx.shadowColor = primaryColor;
+            ctx.shadowBlur = 25;
+            ctx.globalAlpha = 0.35 + Math.sin(time * 3) * 0.15;
+            ctx.fill();
+            ctx.restore();
+
+            // 4. Arcade Title & Category in Cabinet's Theme Color
+            ctx.save();
+            ctx.shadowColor = primaryColor;
+            ctx.shadowBlur = 20;
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '900 32px "Orbitron", sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(config.title.toUpperCase(), width / 2, height * 0.72);
+
+            ctx.font = '600 14px "Orbitron", sans-serif';
+            ctx.fillStyle = primaryColor;
+            ctx.fillText(config.category.toUpperCase(), width / 2, height * 0.80);
+            ctx.restore();
+
+            // 5. Pulsing "CLICK TO LAUNCH PORTAL" Prompt
+            ctx.save();
+            const pulseAlpha = 0.45 + Math.sin(time * 6) * 0.45;
+            ctx.globalAlpha = Math.max(0.1, pulseAlpha);
+            ctx.fillStyle = primaryColor;
+            ctx.font = 'bold 13px "Orbitron", sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText("▶ CLICK TO LAUNCH PORTAL ◀", width / 2, height * 0.91);
+            ctx.restore();
+
+            // 6. Scanlines Filter Overlay
+            ctx.save();
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
+            for (let y = 0; y < height; y += 4) {
+                ctx.fillRect(0, y, width, 2);
+            }
+            ctx.restore();
+        }
+
+        // ====================================================================
+        // 6. FIRST-PERSON FPS CONTROLLER & COLLISION LOGIC
+        // ====================================================================
+        function setupFPSControls() {
+            const hintBanner = document.getElementById('click-hint-banner');
+
+            // Seamless click anywhere to lock pointer & initialize audio
+            document.addEventListener('click', (e) => {
+                if (e.target.closest('#btn-audio')) return;
+
+                if (!isPointerLocked) {
+                    document.body.requestPointerLock();
+                    initAudio();
+                    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+                } else {
+                    openTargetPortal();
+                }
+            });
+
+            document.addEventListener('pointerlockchange', () => {
+                if (document.pointerLockElement === document.body) {
+                    isPointerLocked = true;
+                    hintBanner.style.opacity = '0';
+                } else {
+                    isPointerLocked = false;
+                    hintBanner.style.opacity = '1';
+                }
+            });
+
+            // FPS Mouse Look
+            document.addEventListener('mousemove', (e) => {
+                if (!isPointerLocked) return;
+
+                const sensitivity = 0.0022;
+                yaw -= e.movementX * sensitivity;
+                pitch -= e.movementY * sensitivity;
+
+                // Clamp pitch up/down look angles
+                pitch = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, pitch));
+            });
+
+            // WASD Keyboard Movement
+            document.addEventListener('keydown', (e) => {
+                switch (e.code) {
+                    case 'KeyW': case 'ArrowUp': moveForward = true; break;
+                    case 'KeyS': case 'ArrowDown': moveBackward = true; break;
+                    case 'KeyA': case 'ArrowLeft': moveLeft = true; break;
+                    case 'KeyD': case 'ArrowRight': moveRight = true; break;
+                    case 'KeyE': openTargetPortal(); break;
+                }
+            });
+
+            document.addEventListener('keyup', (e) => {
+                switch (e.code) {
+                    case 'KeyW': case 'ArrowUp': moveForward = false; break;
+                    case 'KeyS': case 'ArrowDown': moveBackward = false; break;
+                    case 'KeyA': case 'ArrowLeft': moveLeft = false; break;
+                    case 'KeyD': case 'ArrowRight': moveRight = false; break;
+                }
+            });
+        }
+
+        function updatePlayerMovement(delta) {
+            if (!isPointerLocked) return;
+
+            const moveDir = new THREE.Vector3();
+            
+            // Forward/Right vectors based on camera orientation
+            const front = new THREE.Vector3(-Math.sin(yaw), 0, -Math.cos(yaw)).normalize();
+            const right = new THREE.Vector3(Math.cos(yaw), 0, -Math.sin(yaw)).normalize();
+
+            if (moveForward) moveDir.add(front);
+            if (moveBackward) moveDir.sub(front);
+            if (moveRight) moveDir.add(right);
+            if (moveLeft) moveDir.sub(right);
+
+            if (moveDir.lengthSq() > 0) {
+                moveDir.normalize();
+
+                // Step sound effect
+                stepSoundCooldown -= delta;
+                if (stepSoundCooldown <= 0) {
+                    playFootstepSound();
+                    stepSoundCooldown = 0.38;
+                }
+
+                const nextX = playerPos.x + moveDir.x * walkSpeed * delta;
+                const nextZ = playerPos.z + moveDir.z * walkSpeed * delta;
+
+                // Wall Collisions
+                let validX = nextX;
+                let validZ = nextZ;
+
+                if (validX < -8.8 + playerRadius) validX = -8.8 + playerRadius;
+                if (validX > 8.8 - playerRadius) validX = 8.8 - playerRadius;
+                if (validZ < -18.5 + playerRadius) validZ = -18.5 + playerRadius;
+                if (validZ > 18.5 - playerRadius) validZ = 18.5 - playerRadius;
+
+                // Arcade Cabinet Bounding Box Collisions
+                arcadeCabinets.forEach(cab => {
+                    if (validX > cab.minX - playerRadius && validX < cab.maxX + playerRadius &&
+                        validZ > cab.minZ - playerRadius && validZ < cab.maxZ + playerRadius) {
+                        
+                        if (playerPos.x <= cab.minX - playerRadius || playerPos.x >= cab.maxX + playerRadius) {
+                            validX = playerPos.x;
+                        }
+                        if (playerPos.z <= cab.minZ - playerRadius || playerPos.z >= cab.maxZ + playerRadius) {
+                            validZ = playerPos.z;
+                        }
+                    }
+                });
+
+                playerPos.x = validX;
+                playerPos.z = validZ;
+            }
+
+            // Update Camera Position & Orientation
+            camera.position.copy(playerPos);
+
+            const euler = new THREE.Euler(pitch, yaw, 0, 'YXZ');
+            camera.quaternion.setFromEuler(euler);
+        }
+
+        // ====================================================================
+        // 7. TARGET RAYCASTING & HUD INTERACTION
+        // ====================================================================
+        function updateRaycasting() {
+            if (!isPointerLocked) {
+                hideHUDPrompt();
+                return;
+            }
+
+            raycaster.setFromCamera(centerRayVector, camera);
+
+            const interactables = [];
+            arcadeCabinets.forEach(cab => interactables.push(cab.screenMesh));
+
+            const intersects = raycaster.intersectObjects(interactables);
+            const crosshair = document.getElementById('crosshair');
+
+            if (intersects.length > 0 && intersects[0].distance < 4.8) {
+                const cabId = intersects[0].object.userData.cabinetId;
+                const cabinet = arcadeCabinets.find(c => c.id === cabId);
+
+                if (cabinet) {
+                    if (targetCabinet !== cabinet) {
+                        targetCabinet = cabinet;
+                        playSynthBeep(650, 0.06, 'sine', 0.08);
+                        showHUDPrompt(cabinet);
+                    }
+                    crosshair.classList.add('reticle-active');
+                    return;
+                }
+            }
+
+            if (targetCabinet) {
+                targetCabinet = null;
+                hideHUDPrompt();
+            }
+            crosshair.classList.remove('reticle-active');
+        }
+
+        function showHUDPrompt(cabinet) {
+            const prompt = document.getElementById('hud-prompt');
+            document.getElementById('hud-title').innerText = cabinet.config.title;
+            document.getElementById('hud-title').style.color = cabinet.config.color;
+            document.getElementById('hud-url').innerText = cabinet.config.url;
+            document.getElementById('hud-category').innerText = cabinet.config.category;
+
+            prompt.style.opacity = '1';
+            prompt.style.transform = 'translate(-50%, 0) scale(1)';
+        }
+
+        function hideHUDPrompt() {
+            const prompt = document.getElementById('hud-prompt');
+            prompt.style.opacity = '0';
+            prompt.style.transform = 'translate(-50%, 10px) scale(0.95)';
+        }
+
+        function openTargetPortal() {
+            if (targetCabinet && targetCabinet.config.url) {
+                playCoinSound();
+                window.open(targetCabinet.config.url, '_blank');
+            }
+        }
+
+        // ====================================================================
+        // 8. ANIMATION LOOP & ENGINE START
+        // ====================================================================
+        const clock = new THREE.Clock();
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const delta = Math.min(clock.getDelta(), 0.1);
+            const elapsedTime = clock.getElapsedTime();
+
+            // FPS Camera & Movement update
+            updatePlayerMovement(delta);
+
+            // Target Raycasting
+            updateRaycasting();
+
+            // Dynamic Screen Textures & Cabinet Animations
+            updateScreenTextures(elapsedTime);
+
+            arcadeCabinets.forEach((cab, idx) => {
+                if (cab.joystickMesh) {
+                    cab.joystickMesh.rotation.z = Math.sin(elapsedTime * 3 + idx) * 0.15;
+                }
+                if (cab.light) {
+                    cab.light.intensity = 1.4 + Math.sin(elapsedTime * 4 + idx) * 0.4;
+                }
+            });
+
+            renderer.render(scene, camera);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        // Initialize immediately on window load
+        window.onload = () => {
+            init3DScene();
+        };
+    </script>
+</body>
+</html>
