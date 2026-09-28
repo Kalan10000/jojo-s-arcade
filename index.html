@@ -8,10 +8,10 @@
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Google Fonts: Orbitron & Inter -->
+    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Orbitron:wght@600;900&family=Press+Start+2P&display=swap" rel="stylesheet">
     
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -22,157 +22,755 @@
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #030108;
+            background-color: #040208;
             color: #ffffff;
             user-select: none;
         }
 
-        .font-orbitron {
-            font-family: 'Orbitron', sans-serif;
-        }
+        .font-orbitron { font-family: 'Orbitron', sans-serif; }
+        .font-pixel { font-family: 'Press Start 2P', monospace; }
 
-        /* Neon Glow Styling Utilities */
-        .neon-text-pink {
-            text-shadow: 0 0 5px #ff007f, 0 0 10px #ff007f, 0 0 20px #ff007f, 0 0 40px #ff007f;
-        }
-        .neon-text-cyan {
-            text-shadow: 0 0 5px #00f0ff, 0 0 10px #00f0ff, 0 0 20px #00f0ff, 0 0 40px #00f0ff;
-        }
-        .neon-border-pink {
-            box-shadow: 0 0 15px #ff007f, inset 0 0 10px #ff007f;
-            border-color: #ff007f;
-        }
-        .neon-border-cyan {
-            box-shadow: 0 0 15px #00f0ff, inset 0 0 10px #00f0ff;
-            border-color: #00f0ff;
-        }
-
-        /* Glassmorphism Panels */
+        /* HUD Glassmorphism Panel */
         .glass-panel {
-            background: rgba(10, 5, 24, 0.85);
-            backdrop-filter: blur(14px);
-            -webkit-backdrop-filter: blur(14px);
-            border: 1px solid rgba(255, 255, 255, 0.15);
+            background: rgba(10, 8, 20, 0.88);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
         }
 
-        /* CRT Scanlines Overlay */
-        .scanlines {
-            background: linear-gradient(
-                rgba(18, 16, 16, 0) 50%, 
-                rgba(0, 0, 0, 0.3) 50%
-            );
-            background-size: 100% 4px;
+        /* Reticle Focus Pulse */
+        @keyframes reticleLock {
+            0% { transform: translate(-50%, -50%) scale(1); border-color: rgba(0, 240, 255, 0.8); }
+            50% { transform: translate(-50%, -50%) scale(1.3); border-color: rgba(255, 0, 127, 1); }
+            100% { transform: translate(-50%, -50%) scale(1); border-color: rgba(0, 240, 255, 0.8); }
         }
 
-        /* Crosshair Lock Animation */
-        @keyframes reticlePulse {
-            0% { transform: translate(-50%, -50%) scale(1); opacity: 0.85; }
-            50% { transform: translate(-50%, -50%) scale(1.35); opacity: 1; }
-            100% { transform: translate(-50%, -50%) scale(1); opacity: 0.85; }
-        }
-
-        .reticle-active {
-            animation: reticlePulse 1.0s infinite ease-in-out;
-            background-color: #00f0ff !important;
-            box-shadow: 0 0 14px #00f0ff, 0 0 28px #00f0ff !important;
+        .reticle-locked {
+            animation: reticleLock 0.8s infinite ease-in-out;
+            background-color: rgba(0, 240, 255, 0.6) !important;
         }
     </style>
 </head>
 <body class="h-full w-full relative overflow-hidden bg-black select-none">
 
-    <!-- 3D Canvas Viewport -->
+    <!-- 3D WebGL Canvas Container -->
     <div id="canvas-container" class="absolute inset-0 w-full h-full z-0 cursor-crosshair"></div>
 
-    <!-- Retro CRT Scanline Texture Overlay -->
-    <div class="pointer-events-none absolute inset-0 z-10 scanlines opacity-30"></div>
+    <!-- FPS Reticle -->
+    <div id="crosshair" class="pointer-events-none fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 w-3 h-3 rounded-full border border-cyan-400 bg-cyan-400/20 transition-all duration-150"></div>
 
-    <!-- FPS Center Reticle Crosshair -->
-    <div id="crosshair" class="pointer-events-none fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 w-3.5 h-3.5 rounded-full border-2 border-cyan-400 bg-cyan-400/30 transition-all duration-150"></div>
-
-    <!-- Minimal Controls Hint Banner -->
-    <div id="click-hint-banner" class="fixed top-6 left-1/2 -translate-x-1/2 z-30 pointer-events-none transition-opacity duration-500">
-        <div class="glass-panel px-6 py-2.5 rounded-2xl border border-pink-500/50 shadow-2xl shadow-pink-500/20 flex items-center space-x-3 text-xs md:text-sm font-orbitron">
-            <span class="w-2.5 h-2.5 rounded-full bg-pink-500 animate-ping"></span>
-            <span class="text-pink-300 font-bold">CLICK SCENE TO LOOK & WALK</span>
-            <span class="text-slate-500">|</span>
-            <span class="text-cyan-300"><i class="fa-solid fa-keyboard mr-1"></i> WASD to move</span>
-            <span class="text-slate-500">|</span>
-            <span class="text-yellow-300"><i class="fa-solid fa-mouse mr-1"></i> Click cabinet to launch URL</span>
+    <!-- Minimal Instruction Banner -->
+    <div id="click-hint-banner" class="fixed top-5 left-1/2 -translate-x-1/2 z-30 pointer-events-none transition-opacity duration-500">
+        <div class="glass-panel px-5 py-2 rounded-xl border border-slate-700 shadow-lg flex items-center space-x-3 text-xs font-orbitron">
+            <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+            <span class="text-cyan-300 font-bold">CLICK SCENE TO CONTROL</span>
+            <span class="text-slate-600">|</span>
+            <span class="text-slate-300"><i class="fa-solid fa-keyboard mr-1"></i> WASD to walk</span>
+            <span class="text-slate-600">|</span>
+            <span class="text-slate-300"><i class="fa-solid fa-mouse-pointer mr-1"></i> Click cabinet to launch</span>
         </div>
     </div>
 
-    <!-- TARGET HUD PROMPT (Appears when aiming at an arcade cabinet) -->
-    <div id="hud-prompt" class="pointer-events-none fixed top-1/2 left-1/2 -translate-x-1/2 translate-y-10 z-30 opacity-0 transition-all duration-300 transform scale-95 glass-panel px-6 py-3 rounded-2xl border border-cyan-400/60 shadow-2xl shadow-cyan-500/30 text-center">
+    <!-- TARGET CABINET HUD DISPLAY -->
+    <div id="hud-prompt" class="pointer-events-none fixed top-1/2 left-1/2 -translate-x-1/2 translate-y-8 z-30 opacity-0 transition-all duration-200 transform scale-95 glass-panel px-6 py-3.5 rounded-2xl border border-cyan-500/50 shadow-2xl text-center">
         <div class="flex items-center justify-center space-x-2 mb-1">
-            <span id="hud-category" class="px-2.5 py-0.5 rounded-full text-[10px] font-orbitron uppercase tracking-widest bg-pink-500/20 text-pink-300 border border-pink-500/40">CATEGORY</span>
+            <span id="hud-category" class="px-2.5 py-0.5 rounded-full text-[10px] font-orbitron uppercase tracking-wider bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">GENRE</span>
         </div>
-        <h3 id="hud-title" class="font-orbitron font-black text-lg md:text-xl text-white neon-text-cyan">GAME TITLE</h3>
-        <p id="hud-url" class="text-xs font-mono text-cyan-300 truncate max-w-xs mb-2">https://example.com</p>
-        <div id="hud-button-badge" class="inline-flex items-center space-x-2 bg-pink-600/30 px-3 py-1 rounded-xl border border-pink-500/50 text-pink-300 text-[11px] font-orbitron animate-pulse">
-            <i class="fa-solid fa-arrow-pointer"></i>
-            <span>CLICK OR PRESS [E] TO ENTER</span>
+        <h3 id="hud-title" class="font-orbitron font-extrabold text-lg md:text-xl text-white">GAME TITLE</h3>
+        <p id="hud-url" class="text-xs font-mono text-cyan-300/80 truncate max-w-xs mb-2.5">https://example.com</p>
+        <div id="hud-button-badge" class="inline-flex items-center space-x-2 bg-pink-600/40 px-3.5 py-1 rounded-lg border border-pink-500/50 text-pink-200 text-[11px] font-orbitron">
+            <i class="fa-solid fa-arrow-pointer text-xs"></i>
+            <span>CLICK OR PRESS [E] TO LAUNCH</span>
         </div>
     </div>
 
-    <!-- Synthwave Music Toggle Button -->
+    <!-- Audio Synth Control Button -->
     <div class="fixed bottom-5 right-5 z-30">
-        <button id="btn-audio" onclick="toggleAudio()" class="p-3.5 rounded-2xl glass-panel text-slate-300 hover:text-cyan-400 border border-slate-700/80 hover:border-cyan-400/60 transition shadow-xl flex items-center space-x-2 text-xs font-orbitron">
-            <i id="audio-icon" class="fa-solid fa-volume-xmark text-pink-500 text-base"></i>
-            <span id="audio-text" class="hidden sm:inline">SYNTH MUSIC</span>
+        <button id="btn-audio" onclick="toggleAudio()" class="px-4 py-2.5 rounded-xl glass-panel text-slate-300 hover:text-cyan-300 border border-slate-700/80 hover:border-cyan-500/60 transition shadow-md flex items-center space-x-2 text-xs font-orbitron">
+            <i id="audio-icon" class="fa-solid fa-volume-xmark text-pink-400 text-sm"></i>
+            <span id="audio-text" class="hidden sm:inline">SYNTH MUSIC [M]</span>
         </button>
     </div>
 
     <script>
-        // ====================================================================
-        // 1. ARCADE CABINETS CONFIGURATION ARRAY
-        // ====================================================================
-        const ARCADE_CONFIGS = [
+        const MAIN_ARCADE_CONFIGS = [
             { id: 0, title: "LABYRINTHE", category: "3D Labyrinth", url: "https://labyrintheajojo.vercel.app/", color: "#ff0055" },
-            { id: 1, title: "CYBER QUEST", category: "Sci-Fi RPG", url: "https://example.com/cyber-quest", color: "#00f3ff" },
-            { id: 2, title: "NEON BLASTER", category: "Space Shooter", url: "https://example.com/neon-blaster", color: "#39ff14" },
-            { id: 3, title: "SYNTH WAVE", category: "Rhythm Racer", url: "https://example.com/synth-wave", color: "#bf00ff" },
-            { id: 4, title: "GALACTIC SHIFT", category: "Puzzle Matrix", url: "https://example.com/galactic-shift", color: "#ffcc00" },
-            { id: 5, title: "HYPER GRID", category: "Cyber Combat", url: "https://example.com/hyper-grid", color: "#ff00aa" }
+            { id: 1, title: "CYBER QUEST", category: "Sci-Fi RPG", url: "https://example.com/cyberquest", color: "#00f3ff" },
+            { id: 2, title: "NEON BLASTER", category: "Space Shooter", url: "https://example.com/neonblaster", color: "#39ff14" },
+            { id: 3, title: "SYNTH WAVE", category: "Rhythm Racer", url: "https://example.com/synthwave", color: "#bf00ff" },
+            { id: 4, title: "GALACTIC SHIFT", category: "Puzzle Matrix", url: "https://example.com/galactic", color: "#ffcc00" },
+            { id: 5, title: "HYPER GRID", category: "Cyber Combat", url: "https://example.com/hypergrid", color: "#ff00aa" }
         ];
 
-        // Global Scene Engine Variables
+        const SECRET_CABINET_CONFIG = {
+            id: 99,
+            title: "KALAN'S GAMES",
+            category: "VINTAGE CLASSIC",
+            url: "https://kalansgames.vercel.app/",
+            color: "#ffaa00",
+            isSecret: true
+        };
+
+        // Global Engine State
         let scene, camera, renderer;
         let arcadeCabinets = [];
         let raycaster, centerRayVector;
 
-        // FPS Movement & Orientation State
+        // Player Controls State
         let moveForward = false;
         let moveBackward = false;
         let moveLeft = false;
         let moveRight = false;
         let isPointerLocked = false;
 
-        // Yaw = 0 faces down -Z (180 degrees into arcade hall towards back wall)
         let pitch = 0;
-        let yaw = 0; 
-        const playerPos = new THREE.Vector3(0, 1.7, 12); // Player spawn position
-        const playerRadius = 0.6; // Collision radius
-        const walkSpeed = 7.5;
+        let yaw = 0; // Spawns facing -Z (down the hall)
+        const playerPos = new THREE.Vector3(0, 1.13, 12);
+        const playerRadius = 0.33;
+        const walkSpeed = 5.5;
 
-        // Target Interactive Cabinet
         let targetCabinet = null;
 
         // Web Audio Synthesizer State
         let audioCtx = null;
         let isAudioPlaying = false;
-        let synthArpTimer = null;
-        let stepSoundCooldown = 0;
+        let synthTimer = null;
 
-        // ====================================================================
-        // 2. AUDIO SYNTHESIZER & SFX
-        // ====================================================================
+        function generateRealisticWoodCanvas(width = 512, height = 512) {
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+
+            // Rich Mahogany Wood Base
+            const grad = ctx.createLinearGradient(0, 0, width, height);
+            grad.addColorStop(0, '#2e1406');
+            grad.addColorStop(0.5, '#1b0a02');
+            grad.addColorStop(1, '#381a08');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, width, height);
+
+            // Fiber Grain Strands
+            for (let i = 0; i < 400; i++) {
+                const x = Math.random() * width;
+                const w = Math.random() * 2 + 0.5;
+                const alpha = Math.random() * 0.12 + 0.03;
+                ctx.fillStyle = Math.random() > 0.5 ? `rgba(10, 4, 1, ${alpha})` : `rgba(70, 36, 14, ${alpha})`;
+                ctx.fillRect(x, 0, w, height);
+            }
+
+            // Wavy Wood Curves
+            ctx.lineWidth = 1.8;
+            for (let g = 0; g < 30; g++) {
+                const startX = (g / 30) * width + (Math.random() * 10 - 5);
+                const alpha = Math.random() * 0.15 + 0.05;
+                ctx.strokeStyle = `rgba(12, 5, 1, ${alpha})`;
+                ctx.beginPath();
+                ctx.moveTo(startX, 0);
+
+                for (let y = 0; y <= height; y += 10) {
+                    const shift = Math.sin(y * 0.01) * 12 + Math.cos(y * 0.02) * 4;
+                    ctx.lineTo(startX + shift, y);
+                }
+                ctx.stroke();
+            }
+
+            return canvas;
+        }
+
+        function init3DScene() {
+            const container = document.getElementById('canvas-container');
+
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x05030a);
+            scene.fog = new THREE.FogExp2(0x05030a, 0.02);
+
+            camera = new THREE.PerspectiveCamera(62, window.innerWidth / window.innerHeight, 0.1, 100);
+            camera.position.copy(playerPos);
+
+            const euler = new THREE.Euler(pitch, yaw, 0, 'YXZ');
+            camera.quaternion.setFromEuler(euler);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.15;
+            container.appendChild(renderer.domElement);
+
+            raycaster = new THREE.Raycaster();
+            centerRayVector = new THREE.Vector2(0, 0);
+
+            setupLighting();
+            setupMainHall();
+            setupSecretRoom();
+
+            buildMainCabinets();
+            buildSecretCabinet();
+
+            setupFPSControls();
+
+            window.addEventListener('resize', onWindowResize);
+            animate();
+        }
+
+        function setupLighting() {
+            // Hemisphere Light for soft natural sky/ground ambient fill (eliminates pitch-black silhouettes)
+            const hemiLight = new THREE.HemisphereLight(0x8070a0, 0x201535, 1.35);
+            scene.add(hemiLight);
+
+            // Directional key light for subtle top highlights
+            const dirLight = new THREE.DirectionalLight(0xfff0e6, 0.85);
+            dirLight.position.set(0, 10, 4);
+            scene.add(dirLight);
+
+            // Corridor Point Lights (Subtle, non-blinding overhead lighting)
+            const lightPositions = [12, 4, -4];
+            lightPositions.forEach((zPos, idx) => {
+                const color = idx % 2 === 0 ? 0x00f0ff : 0xff007f;
+                const pLight = new THREE.PointLight(color, 0.75, 12);
+                pLight.position.set(0, 4.8, zPos);
+                scene.add(pLight);
+            });
+
+            // Secret Room Soft Incandescent Illumination
+            const secretRoomLight = new THREE.PointLight(0xffaa44, 1.2, 9);
+            secretRoomLight.position.set(-6.5, 3.2, -18.0);
+            scene.add(secretRoomLight);
+        }
+
+        function setupMainHall() {
+            // Main Floor (Width 15, Length 28 from Z = -10 to +18)
+            const floorGeo = new THREE.PlaneGeometry(15, 28);
+
+            // Clean Floor Canvas (No spotlight/glare artifacts)
+            const tileCanvas = document.createElement('canvas');
+            tileCanvas.width = 512;
+            tileCanvas.height = 512;
+            const tCtx = tileCanvas.getContext('2d');
+
+            tCtx.fillStyle = '#0a0714';
+            tCtx.fillRect(0, 0, 512, 512);
+            tCtx.strokeStyle = 'rgba(255, 0, 127, 0.22)';
+            tCtx.lineWidth = 3;
+
+            for (let i = 0; i <= 512; i += 64) {
+                tCtx.beginPath(); tCtx.moveTo(i, 0); tCtx.lineTo(i, 512); tCtx.stroke();
+                tCtx.beginPath(); tCtx.moveTo(0, i); tCtx.lineTo(512, i); tCtx.stroke();
+            }
+
+            const floorTex = new THREE.CanvasTexture(tileCanvas);
+            floorTex.wrapS = THREE.RepeatWrapping;
+            floorTex.wrapT = THREE.RepeatWrapping;
+            floorTex.repeat.set(7.5, 14);
+
+            const floorMat = new THREE.MeshStandardMaterial({ map: floorTex, roughness: 0.35, metalness: 0.25 });
+            const floor = new THREE.Mesh(floorGeo, floorMat);
+            floor.rotation.x = -Math.PI / 2;
+            floor.position.set(0, 0, 4);
+            scene.add(floor);
+
+            // Ceiling
+            const ceilingMat = new THREE.MeshStandardMaterial({ color: 0x090612, roughness: 0.8 });
+            const ceiling = new THREE.Mesh(floorGeo, ceilingMat);
+            ceiling.rotation.x = Math.PI / 2;
+            ceiling.position.set(0, 5.2, 4);
+            scene.add(ceiling);
+
+            // Main Room Walls
+            const wallMat = new THREE.MeshStandardMaterial({ color: 0x0f0b1a, roughness: 0.7 });
+
+            // Left Wall (X = -7.5)
+            const leftWall = new THREE.Mesh(new THREE.PlaneGeometry(28, 5.2), wallMat);
+            leftWall.position.set(-7.5, 2.6, 4);
+            leftWall.rotation.y = Math.PI / 2;
+            scene.add(leftWall);
+
+            // Right Wall (X = 7.5)
+            const rightWall = new THREE.Mesh(new THREE.PlaneGeometry(28, 5.2), wallMat);
+            rightWall.position.set(7.5, 2.6, 4);
+            rightWall.rotation.y = -Math.PI / 2;
+            scene.add(rightWall);
+
+            // Front Entrance Wall (Z = 18)
+            const frontWall = new THREE.Mesh(new THREE.PlaneGeometry(15, 5.2), wallMat);
+            frontWall.position.set(0, 2.6, 18);
+            frontWall.rotation.y = Math.PI;
+            scene.add(frontWall);
+
+            // Back Wall (Z = -10.0) with Seamless Easter Egg Portal Gap
+            // Right Back Wall Segment (X: -4.5 to 7.5)
+            const backRightWall = new THREE.Mesh(new THREE.PlaneGeometry(12, 5.2), wallMat);
+            backRightWall.position.set(1.5, 2.6, -10);
+            scene.add(backRightWall);
+
+            // Left Back Wall Segment (X: -7.5 to -7.0)
+            const backLeftWall = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 5.2), wallMat);
+            backLeftWall.position.set(-7.25, 2.6, -10);
+            scene.add(backLeftWall);
+
+            // Seamless Phasing Wall Panel across X = -7.0 to -4.5 at Z = -10 (NO floor/wall glow!)
+            const phaseWall = new THREE.Mesh(new THREE.PlaneGeometry(2.5, 5.2), wallMat);
+            phaseWall.position.set(-5.75, 2.6, -9.99);
+            scene.add(phaseWall);
+
+            // Clean Sign on Back Wall (Centered at X = 0)
+            createCleanSign(0, 3.8, -9.9, 0);
+        }
+
+        function setupSecretRoom() {
+            // Secret Room: X from -11.0 to -2.0, Z from -10.0 to -22.0
+            const woodCanvas = generateRealisticWoodCanvas(512, 512);
+            const woodTex = new THREE.CanvasTexture(woodCanvas);
+            woodTex.wrapS = THREE.RepeatWrapping;
+            woodTex.wrapT = THREE.RepeatWrapping;
+            woodTex.repeat.set(3, 4);
+
+            const secretFloorMat = new THREE.MeshStandardMaterial({ map: woodTex, roughness: 0.5 });
+            const secretFloor = new THREE.Mesh(new THREE.PlaneGeometry(9, 12), secretFloorMat);
+            secretFloor.rotation.x = -Math.PI / 2;
+            secretFloor.position.set(-6.5, 0, -16);
+            scene.add(secretFloor);
+
+            // Secret Ceiling
+            const secretCeilingMat = new THREE.MeshStandardMaterial({ color: 0x1f1107, roughness: 0.9 });
+            const secretCeiling = new THREE.Mesh(new THREE.PlaneGeometry(9, 12), secretCeilingMat);
+            secretCeiling.rotation.x = Math.PI / 2;
+            secretCeiling.position.set(-6.5, 4.2, -16);
+            scene.add(secretCeiling);
+
+            // Vintage Wallpaper Canvas
+            const paperCanvas = document.createElement('canvas');
+            paperCanvas.width = 256;
+            paperCanvas.height = 256;
+            const pCtx = paperCanvas.getContext('2d');
+            pCtx.fillStyle = '#221107';
+            pCtx.fillRect(0, 0, 256, 256);
+            pCtx.fillStyle = '#180a03';
+            for (let x = 0; x < 256; x += 32) {
+                pCtx.fillRect(x, 0, 16, 256);
+            }
+
+            const paperTex = new THREE.CanvasTexture(paperCanvas);
+            paperTex.wrapS = THREE.RepeatWrapping;
+            paperTex.wrapT = THREE.RepeatWrapping;
+            paperTex.repeat.set(4, 2);
+
+            const secretWallMat = new THREE.MeshStandardMaterial({ map: paperTex, roughness: 0.7 });
+
+            // Secret Room Back Wall (Z = -22.0)
+            const secretBack = new THREE.Mesh(new THREE.PlaneGeometry(9, 4.2), secretWallMat);
+            secretBack.position.set(-6.5, 2.1, -22);
+            scene.add(secretBack);
+
+            // Secret Room Left Wall (X = -11.0)
+            const secretLeft = new THREE.Mesh(new THREE.PlaneGeometry(12, 4.2), secretWallMat);
+            secretLeft.position.set(-11.0, 2.1, -16);
+            secretLeft.rotation.y = Math.PI / 2;
+            scene.add(secretLeft);
+
+            // Secret Room Right Wall (X = -2.0)
+            const secretRight = new THREE.Mesh(new THREE.PlaneGeometry(12, 4.2), secretWallMat);
+            secretRight.position.set(-2.0, 2.1, -16);
+            secretRight.rotation.y = -Math.PI / 2;
+            scene.add(secretRight);
+        }
+
+        function createCleanSign(x, y, z, rotY) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 1024;
+            canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+
+            ctx.fillStyle = '#080512';
+            ctx.fillRect(0, 0, 1024, 256);
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '900 76px "Orbitron", sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText("JOJO'S ARCADE", 512, 110);
+
+            ctx.fillStyle = '#ff007f';
+            ctx.font = '700 30px "Orbitron", sans-serif';
+            ctx.fillText('SELECT A CABINET TO LAUNCH PORTAL', 512, 185);
+
+            const signTex = new THREE.CanvasTexture(canvas);
+            const signMat = new THREE.MeshBasicMaterial({ map: signTex, transparent: true });
+            const signMesh = new THREE.Mesh(new THREE.PlaneGeometry(10, 2.5), signMat);
+            signMesh.position.set(x, y, z);
+            signMesh.rotation.y = rotY;
+            scene.add(signMesh);
+        }
+
+        function buildMainCabinets() {
+            // Rows at Z = +4, Z = 0, Z = -4 (Well in front of back wall at Z = -10)
+            const zPositions = [4.0, 0.0, -4.0];
+
+            MAIN_ARCADE_CONFIGS.forEach((data, index) => {
+                const isLeft = index % 2 === 0;
+                const row = Math.floor(index / 2);
+
+                const posX = isLeft ? -5.5 : 5.5;
+                const posZ = zPositions[row];
+                const rotY = isLeft ? Math.PI / 2.4 : -Math.PI / 2.4;
+
+                const cabinetData = createRealisticCabinetMesh(data, false);
+                const group = cabinetData.group;
+
+                group.position.set(posX, 0, posZ);
+                group.rotation.y = rotY;
+                scene.add(group);
+
+                arcadeCabinets.push({
+                    id: data.id,
+                    config: data,
+                    group: group,
+                    screenMesh: cabinetData.screenMesh,
+                    screenCanvas: cabinetData.screenCanvas,
+                    screenCtx: cabinetData.screenCtx,
+                    minX: posX - 0.9,
+                    maxX: posX + 0.9,
+                    minZ: posZ - 0.9,
+                    maxZ: posZ + 0.9
+                });
+            });
+        }
+
+        function buildSecretCabinet() {
+            // KALAN'S GAMES Cabinet inside Secret Room (X = -6.5, Z = -19.5)
+            const posX = -6.5;
+            const posZ = -19.5;
+
+            const cabinetData = createRealisticCabinetMesh(SECRET_CABINET_CONFIG, true);
+            const group = cabinetData.group;
+
+            group.position.set(posX, 0, posZ);
+            group.rotation.y = 0; // Facing forward
+            scene.add(group);
+
+            arcadeCabinets.push({
+                id: SECRET_CABINET_CONFIG.id,
+                config: SECRET_CABINET_CONFIG,
+                group: group,
+                screenMesh: cabinetData.screenMesh,
+                screenCanvas: cabinetData.screenCanvas,
+                screenCtx: cabinetData.screenCtx,
+                minX: posX - 0.9,
+                maxX: posX + 0.9,
+                minZ: posZ - 0.9,
+                maxZ: posZ + 0.9
+            });
+        }
+
+        function createRealisticCabinetMesh(data, isWood) {
+            const group = new THREE.Group();
+            const mainColorHex = parseInt(data.color.replace('#', '0x'));
+
+            // Materials
+            let bodyMat;
+            if (isWood) {
+                const woodCanvas = generateRealisticWoodCanvas(512, 512);
+                const woodTexture = new THREE.CanvasTexture(woodCanvas);
+                bodyMat = new THREE.MeshStandardMaterial({ map: woodTexture, roughness: 0.45, metalness: 0.1 });
+            } else {
+                // Sleek satin dark vinyl finish with specular sheen
+                bodyMat = new THREE.MeshStandardMaterial({ color: 0x201a30, roughness: 0.35, metalness: 0.2 });
+            }
+
+            const trimMat = new THREE.MeshStandardMaterial({
+                color: isWood ? 0x2d1d11 : mainColorHex,
+                roughness: 0.2,
+                metalness: 0.8,
+                emissive: isWood ? 0x000000 : mainColorHex,
+                emissiveIntensity: isWood ? 0.0 : 0.25
+            });
+
+            // 1. Main Cabinet Body (Clean Box Geometry: Width 0.85, Height 2.05, Depth 0.80)
+            const bodyMesh = new THREE.Mesh(new THREE.BoxGeometry(0.85, 2.05, 0.80), bodyMat);
+            bodyMesh.position.y = 1.025;
+            group.add(bodyMesh);
+
+            // 2. T-Molding Edge Trim
+            const trimL = new THREE.Mesh(new THREE.BoxGeometry(0.03, 2.06, 0.03), trimMat);
+            trimL.position.set(-0.43, 1.025, 0.405);
+            group.add(trimL);
+
+            const trimR = new THREE.Mesh(new THREE.BoxGeometry(0.03, 2.06, 0.03), trimMat);
+            trimR.position.set(0.43, 1.025, 0.405);
+            group.add(trimR);
+
+            // 3. Recessed CRT Screen Shroud & Display
+            const screenFrame = new THREE.Mesh(
+                new THREE.BoxGeometry(0.72, 0.58, 0.15),
+                new THREE.MeshStandardMaterial({ color: 0x110e1a, roughness: 0.5 })
+            );
+            screenFrame.position.set(0, 1.35, 0.35);
+            screenFrame.rotation.x = -0.22;
+            group.add(screenFrame);
+
+            const screenCanvas = document.createElement('canvas');
+            screenCanvas.width = 512;
+            screenCanvas.height = 384;
+            const screenCtx = screenCanvas.getContext('2d');
+
+            const screenTexture = new THREE.CanvasTexture(screenCanvas);
+            const screenMat = new THREE.MeshBasicMaterial({ map: screenTexture });
+
+            const screenMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.68, 0.52), screenMat);
+            screenMesh.position.set(0, 1.35, 0.43);
+            screenMesh.rotation.x = -0.22;
+            group.add(screenMesh);
+
+            screenMesh.userData = { cabinetId: data.id };
+            bodyMesh.userData = { cabinetId: data.id };
+
+            // 4. Illuminated Marquee Header
+            const marqueeCanvas = document.createElement('canvas');
+            marqueeCanvas.width = 512;
+            marqueeCanvas.height = 128;
+            const mCtx = marqueeCanvas.getContext('2d');
+
+            if (isWood) {
+                const mGrad = mCtx.createLinearGradient(0, 0, 0, 128);
+                mGrad.addColorStop(0, '#ffe0a0');
+                mGrad.addColorStop(0.5, '#ffaa00');
+                mGrad.addColorStop(1, '#cc6600');
+                mCtx.fillStyle = mGrad;
+                mCtx.fillRect(0, 0, 512, 128);
+
+                mCtx.strokeStyle = '#221100';
+                mCtx.lineWidth = 10;
+                mCtx.strokeRect(5, 5, 502, 118);
+
+                mCtx.fillStyle = '#110500';
+                mCtx.font = '30px "Press Start 2P"';
+                mCtx.textAlign = 'center';
+                mCtx.fillText("KALAN'S", 256, 54);
+                mCtx.fillStyle = '#ffffff';
+                mCtx.font = '24px "Press Start 2P"';
+                mCtx.fillText("GAMES", 256, 100);
+            } else {
+                mCtx.fillStyle = '#0a0514';
+                mCtx.fillRect(0, 0, 512, 128);
+                mCtx.strokeStyle = data.color;
+                mCtx.lineWidth = 8;
+                mCtx.strokeRect(4, 4, 504, 120);
+
+                mCtx.fillStyle = '#ffffff';
+                mCtx.font = 'bold 38px "Orbitron", sans-serif';
+                mCtx.textAlign = 'center';
+                mCtx.fillText(data.title, 256, 76);
+            }
+
+            const marqueeTexture = new THREE.CanvasTexture(marqueeCanvas);
+            const marqueeMesh = new THREE.Mesh(
+                new THREE.BoxGeometry(0.81, 0.28, 0.16),
+                new THREE.MeshBasicMaterial({ map: marqueeTexture })
+            );
+            marqueeMesh.position.set(0, 1.84, 0.38);
+            group.add(marqueeMesh);
+
+            // 5. Inclined Control Deck
+            const deck = new THREE.Mesh(new THREE.BoxGeometry(0.81, 0.10, 0.38), bodyMat);
+            deck.position.set(0, 0.95, 0.44);
+            deck.rotation.x = 0.15;
+            group.add(deck);
+
+            // Chrome Joystick Assembly
+            const stickGroup = new THREE.Group();
+            
+            // Dust Ring
+            const washer = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.01, 16), new THREE.MeshStandardMaterial({ color: 0x111111 }));
+            washer.position.y = 0.005;
+            stickGroup.add(washer);
+
+            // Chrome Shaft
+            const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.10, 16), new THREE.MeshStandardMaterial({ color: 0xdddddd, metalness: 0.95, roughness: 0.1 }));
+            shaft.position.y = 0.055;
+            stickGroup.add(shaft);
+
+            // Ball Top
+            const ball = new THREE.Mesh(new THREE.SphereGeometry(0.035, 16, 16), new THREE.MeshStandardMaterial({
+                color: isWood ? 0xcc1100 : mainColorHex,
+                roughness: 0.2
+            }));
+            ball.position.y = 0.105;
+            stickGroup.add(ball);
+
+            stickGroup.position.set(-0.22, 1.0, 0.44);
+            group.add(stickGroup);
+
+            // 3D Push Buttons
+            const buttonColors = [0xdd1100, 0x0088ff, 0xffcc00, 0x00cc44, 0xff00aa, 0xffffff];
+            let bIdx = 0;
+            for (let row = 0; row < 2; row++) {
+                for (let col = 0; col < 3; col++) {
+                    const btn = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.02, 16), new THREE.MeshStandardMaterial({
+                        color: buttonColors[bIdx % buttonColors.length],
+                        roughness: 0.3
+                    }));
+                    btn.position.set(0.04 + col * 0.065, 0.995 + row * 0.01, 0.40 + row * 0.065);
+                    btn.rotation.x = 0.15;
+                    group.add(btn);
+                    bIdx++;
+                }
+            }
+
+            // 6. Dual Coin Door Assembly
+            const doorFrame = new THREE.Mesh(
+                new THREE.BoxGeometry(0.40, 0.46, 0.04),
+                new THREE.MeshStandardMaterial({ color: 0x1a1a1a, metalness: 0.8, roughness: 0.3 })
+            );
+            doorFrame.position.set(0, 0.48, 0.41);
+            group.add(doorFrame);
+
+            for (let c = -1; c <= 1; c += 2) {
+                const coinBtn = new THREE.Mesh(
+                    new THREE.BoxGeometry(0.05, 0.04, 0.02),
+                    new THREE.MeshStandardMaterial({ color: 0xee1100, emissive: 0x990000, emissiveIntensity: 0.6 })
+                );
+                coinBtn.position.set(c * 0.10, 0.52, 0.435);
+                group.add(coinBtn);
+            }
+
+            return { group, screenMesh, screenCanvas, screenCtx };
+        }
+
+        function updateScreenTextures(time) {
+            arcadeCabinets.forEach((cab) => {
+                const ctx = cab.screenCtx;
+                const width = 512;
+                const height = 384;
+                const config = cab.config;
+
+                if (config.isSecret) {
+                    renderVintagePixelScreen(ctx, width, height, time, config);
+                } else {
+                    renderArcadeGameScreen(ctx, width, height, time, config);
+                }
+
+                cab.screenMesh.material.map.needsUpdate = true;
+            });
+        }
+
+        function renderArcadeGameScreen(ctx, width, height, time, config) {
+            const themeColor = config.color || '#ff007f';
+
+            ctx.fillStyle = '#05020a';
+            ctx.fillRect(0, 0, width, height);
+
+            // Synth Horizon Grid
+            ctx.strokeStyle = themeColor;
+            ctx.lineWidth = 1.5;
+            ctx.globalAlpha = 0.4;
+            const horizon = height * 0.5;
+
+            for (let x = -width; x <= width * 2; x += 32) {
+                ctx.beginPath();
+                ctx.moveTo(width / 2, horizon);
+                ctx.lineTo(x, height);
+                ctx.stroke();
+            }
+
+            const gridOffset = (time * 50) % 18;
+            for (let y = horizon; y < height; y += 10) {
+                const drawY = y + gridOffset;
+                if (drawY < height) {
+                    ctx.beginPath();
+                    ctx.moveTo(0, drawY);
+                    ctx.lineTo(width, drawY);
+                    ctx.stroke();
+                }
+            }
+            ctx.globalAlpha = 1.0;
+
+            // Audio Wave
+            ctx.strokeStyle = themeColor;
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            const centerY = height * 0.35;
+            for (let x = 0; x <= width; x += 6) {
+                const wave = Math.sin(x * 0.025 + time * 4) * 20;
+                if (x === 0) ctx.moveTo(x, centerY + wave);
+                else ctx.lineTo(x, centerY + wave);
+            }
+            ctx.stroke();
+
+            // Typography
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '800 30px "Orbitron", sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(config.title, width / 2, height * 0.72);
+
+            ctx.fillStyle = themeColor;
+            ctx.font = '600 14px "Orbitron", sans-serif';
+            ctx.fillText(config.category.toUpperCase(), width / 2, height * 0.81);
+
+            const blink = Math.sin(time * 5) > 0;
+            if (blink) {
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 12px "Orbitron", sans-serif';
+                ctx.fillText("▶ CLICK TO LAUNCH PORTAL ◀", width / 2, height * 0.92);
+            }
+
+            // CRT Scanlines
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+            for (let y = 0; y < height; y += 4) {
+                ctx.fillRect(0, y, width, 2);
+            }
+        }
+
+        function renderVintagePixelScreen(ctx, width, height, time, config) {
+            ctx.fillStyle = '#120a02';
+            ctx.fillRect(0, 0, width, height);
+
+            // Amber Pixel Invaders
+            ctx.fillStyle = '#ffaa00';
+            for (let i = 0; i < 18; i++) {
+                const px = (i * 35 + Math.floor(time * 30)) % width;
+                const py = (i * 18) % (height * 0.55);
+                ctx.fillRect(px, py, 6, 6);
+            }
+
+            // Ship
+            const shipX = width / 2 + Math.sin(time * 2) * 100;
+            const shipY = height * 0.52;
+
+            ctx.fillStyle = '#ff4400';
+            ctx.fillRect(shipX - 16, shipY, 32, 10);
+            ctx.fillRect(shipX - 6, shipY - 10, 12, 10);
+
+            if (Math.floor(time * 6) % 2 === 0) {
+                ctx.fillStyle = '#ffff00';
+                ctx.fillRect(shipX - 10, shipY - 28, 4, 14);
+                ctx.fillRect(shipX + 6, shipY - 28, 4, 14);
+            }
+
+            ctx.fillStyle = '#ffaa00';
+            ctx.font = '20px "Press Start 2P"';
+            ctx.textAlign = 'center';
+            ctx.fillText("KALAN'S GAMES", width / 2, height * 0.76);
+
+            const blink = Math.sin(time * 4) > 0;
+            if (blink) {
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '12px "Press Start 2P"';
+                ctx.fillText("INSERT COIN", width / 2, height * 0.88);
+            }
+
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+            for (let y = 0; y < height; y += 4) {
+                ctx.fillRect(0, y, width, 2);
+            }
+        }
+
         function initAudio() {
             if (audioCtx) return;
             const AudioContext = window.AudioContext || window.webkitAudioContext;
             audioCtx = new AudioContext();
         }
 
-        function playSynthBeep(freq = 440, duration = 0.1, type = 'square', volume = 0.1) {
+        function playSynthBeep(freq = 440, duration = 0.1, type = 'square', volume = 0.08) {
             if (!audioCtx || audioCtx.state === 'suspended') return;
             try {
                 const osc = audioCtx.createOscillator();
@@ -185,19 +783,7 @@
                 gain.connect(audioCtx.destination);
                 osc.start();
                 osc.stop(audioCtx.currentTime + duration);
-            } catch (e) { console.error("Audio playback error:", e); }
-        }
-
-        function playCoinSound() {
-            if (!audioCtx) initAudio();
-            if (audioCtx.state === 'suspended') audioCtx.resume();
-            playSynthBeep(987.77, 0.08, 'sine', 0.2);
-            setTimeout(() => playSynthBeep(1318.51, 0.25, 'triangle', 0.25), 80);
-        }
-
-        function playFootstepSound() {
-            if (!audioCtx || audioCtx.state === 'suspended') return;
-            playSynthBeep(110 + Math.random() * 30, 0.04, 'triangle', 0.02);
+            } catch (e) {}
         }
 
         function toggleAudio() {
@@ -209,540 +795,35 @@
             const icon = document.getElementById('audio-icon');
 
             if (isAudioPlaying) {
-                btn.classList.add('neon-border-cyan', 'text-cyan-400');
+                btn.classList.add('border-cyan-500', 'text-cyan-300');
                 icon.className = 'fa-solid fa-volume-high text-cyan-400 animate-pulse';
-                startSynthwaveTrack();
+                startSynthTrack();
             } else {
-                btn.classList.remove('neon-border-cyan', 'text-cyan-400');
-                icon.className = 'fa-solid fa-volume-xmark text-pink-500';
-                stopSynthwaveTrack();
+                btn.classList.remove('border-cyan-500', 'text-cyan-300');
+                icon.className = 'fa-solid fa-volume-xmark text-pink-400';
+                stopSynthTrack();
             }
         }
 
-        function startSynthwaveTrack() {
+        function startSynthTrack() {
             if (!audioCtx) return;
             const notes = [110, 110, 130.81, 110, 146.83, 130.81, 98, 110];
             let step = 0;
             
-            synthArpTimer = setInterval(() => {
+            synthTimer = setInterval(() => {
                 if (!isAudioPlaying) return;
-                const freq = notes[step % notes.length];
-                playSynthBeep(freq, 0.15, 'sawtooth', 0.035);
-                if (step % 2 === 0) {
-                    playSynthBeep(440, 0.04, 'triangle', 0.015);
-                }
+                playSynthBeep(notes[step % notes.length], 0.12, 'sawtooth', 0.025);
                 step++;
             }, 180);
         }
 
-        function stopSynthwaveTrack() {
-            if (synthArpTimer) clearInterval(synthArpTimer);
+        function stopSynthTrack() {
+            if (synthTimer) clearInterval(synthTimer);
         }
 
-        // ====================================================================
-        // 3. THREE.JS 3D ENVIRONMENT SETUP
-        // ====================================================================
-        function init3DScene() {
-            const container = document.getElementById('canvas-container');
-
-            // Scene setup
-            scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x030108);
-            scene.fog = new THREE.FogExp2(0x030108, 0.032);
-
-            // Camera setup
-            camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 100);
-            camera.position.copy(playerPos);
-
-            // Yaw = 0 faces down the hall towards -Z
-            const euler = new THREE.Euler(pitch, yaw, 0, 'YXZ');
-            camera.quaternion.setFromEuler(euler);
-
-            // WebGL Renderer setup
-            renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.toneMapping = THREE.ACESFilmicToneMapping;
-            renderer.toneMappingExposure = 1.25;
-            renderer.shadowMap.enabled = true;
-            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-            container.appendChild(renderer.domElement);
-
-            // Center Crosshair Raycaster
-            raycaster = new THREE.Raycaster();
-            centerRayVector = new THREE.Vector2(0, 0);
-
-            // Lighting & Room Architecture
-            setupLighting();
-            setupArcadeRoomEnvironment();
-
-            // Build Arcade Cabinets
-            buildArcadeHallCabinets();
-
-            // FPS Controls & Pointer Lock
-            setupFPSControls();
-
-            // Window Resize listener
-            window.addEventListener('resize', onWindowResize);
-
-            // Start Animation Loop
-            animate();
-        }
-
-        function setupLighting() {
-            // Ambient violet lighting
-            const ambient = new THREE.AmbientLight(0x2d1448, 1.5);
-            scene.add(ambient);
-
-            // Overhead Corridor Neon Light Strips
-            for (let z = -14; z <= 14; z += 7) {
-                const pLight = new THREE.PointLight(z % 14 === 0 ? 0x00f0ff : 0xff007f, 1.8, 12);
-                pLight.position.set(0, 5.5, z);
-                scene.add(pLight);
-            }
-        }
-
-        function setupArcadeRoomEnvironment() {
-            // Reflective Neon Grid Floor
-            const floorGeo = new THREE.PlaneGeometry(24, 40);
-
-            const gridCanvas = document.createElement('canvas');
-            gridCanvas.width = 512;
-            gridCanvas.height = 512;
-            const ctx = gridCanvas.getContext('2d');
-            ctx.fillStyle = '#060210';
-            ctx.fillRect(0, 0, 512, 512);
-            ctx.strokeStyle = '#ff007f';
-            ctx.lineWidth = 4;
-
-            const step = 64;
-            for (let x = 0; x <= 512; x += step) {
-                ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 512); ctx.stroke();
-            }
-            for (let y = 0; y <= 512; y += step) {
-                ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(512, y); ctx.stroke();
-            }
-
-            const floorTexture = new THREE.CanvasTexture(gridCanvas);
-            floorTexture.wrapS = THREE.RepeatWrapping;
-            floorTexture.wrapT = THREE.RepeatWrapping;
-            floorTexture.repeat.set(12, 20);
-
-            const floorMat = new THREE.MeshStandardMaterial({
-                map: floorTexture,
-                roughness: 0.12,
-                metalness: 0.85,
-                emissive: 0x120022,
-                emissiveIntensity: 0.3
-            });
-
-            const floor = new THREE.Mesh(floorGeo, floorMat);
-            floor.rotation.x = -Math.PI / 2;
-            floor.position.set(0, 0, 0);
-            scene.add(floor);
-
-            // Ceiling
-            const ceilingMat = new THREE.MeshStandardMaterial({ color: 0x080414, roughness: 0.8 });
-            const ceiling = new THREE.Mesh(floorGeo, ceilingMat);
-            ceiling.rotation.x = Math.PI / 2;
-            ceiling.position.set(0, 6.5, 0);
-            scene.add(ceiling);
-
-            // Ceiling Neon Beams
-            for (let z = -18; z <= 18; z += 6) {
-                const beamGeo = new THREE.BoxGeometry(20, 0.12, 0.25);
-                const beamMat = new THREE.MeshBasicMaterial({ color: z % 12 === 0 ? 0x00f0ff : 0xff007f });
-                const beam = new THREE.Mesh(beamGeo, beamMat);
-                beam.position.set(0, 6.4, z);
-                scene.add(beam);
-            }
-
-            // Hall Walls
-            const wallMat = new THREE.MeshStandardMaterial({ color: 0x0a0518, roughness: 0.6 });
-            
-            // Left Wall
-            const leftWall = new THREE.Mesh(new THREE.PlaneGeometry(40, 6.5), wallMat);
-            leftWall.position.set(-10, 3.25, 0);
-            leftWall.rotation.y = Math.PI / 2;
-            scene.add(leftWall);
-
-            // Right Wall
-            const rightWall = new THREE.Mesh(new THREE.PlaneGeometry(40, 6.5), wallMat);
-            rightWall.position.set(10, 3.25, 0);
-            rightWall.rotation.y = -Math.PI / 2;
-            scene.add(rightWall);
-
-            // Back Wall
-            const backWall = new THREE.Mesh(new THREE.PlaneGeometry(20, 6.5), wallMat);
-            backWall.position.set(0, 3.25, -20);
-            scene.add(backWall);
-
-            // Entrance Wall
-            const frontWall = new THREE.Mesh(new THREE.PlaneGeometry(20, 6.5), wallMat);
-            frontWall.position.set(0, 3.25, 20);
-            frontWall.rotation.y = Math.PI;
-            scene.add(frontWall);
-
-            // Wall Neon Trims
-            const wallTrimGeo = new THREE.BoxGeometry(0.1, 0.1, 40);
-            const wallTrimLeft = new THREE.Mesh(wallTrimGeo, new THREE.MeshBasicMaterial({ color: 0x00f0ff }));
-            wallTrimLeft.position.set(-9.9, 3.5, 0);
-            scene.add(wallTrimLeft);
-
-            const wallTrimRight = new THREE.Mesh(wallTrimGeo, new THREE.MeshBasicMaterial({ color: 0xff007f }));
-            wallTrimRight.position.set(9.9, 3.5, 0);
-            scene.add(wallTrimRight);
-
-            // Back & Front "JOJO'S ARCADE" Neon Signs
-            createNeonSign(0, 4.2, -19.9, 0);
-            createNeonSign(0, 4.2, 19.9, Math.PI);
-        }
-
-        function createNeonSign(x, y, z, rotY) {
-            const canvas = document.createElement('canvas');
-            canvas.width = 1024;
-            canvas.height = 256;
-            const ctx = canvas.getContext('2d');
-
-            ctx.fillStyle = '#05020a';
-            ctx.fillRect(0, 0, 1024, 256);
-
-            ctx.shadowColor = '#00f0ff';
-            ctx.shadowBlur = 30;
-            ctx.font = '900 88px "Orbitron", sans-serif';
-            ctx.fillStyle = '#ffffff';
-            ctx.textAlign = 'center';
-            ctx.fillText("JOJO'S ARCADE", 512, 110);
-
-            ctx.shadowColor = '#ff007f';
-            ctx.shadowBlur = 35;
-            ctx.fillStyle = '#ff007f';
-            ctx.font = '700 38px "Orbitron", sans-serif';
-            ctx.fillText('SELECT A CABINET TO ENTER PORTAL', 512, 190);
-
-            const signTexture = new THREE.CanvasTexture(canvas);
-            const signMat = new THREE.MeshBasicMaterial({ map: signTexture, transparent: true });
-            const signMesh = new THREE.Mesh(new THREE.PlaneGeometry(16, 4), signMat);
-            signMesh.position.set(x, y, z);
-            signMesh.rotation.y = rotY;
-            scene.add(signMesh);
-        }
-
-        // ====================================================================
-        // 4. PROCEDURAL 3D ARCADE CABINETS GENERATOR
-        // ====================================================================
-        function buildArcadeHallCabinets() {
-            arcadeCabinets = [];
-            const spacingZ = 6.0;
-
-            ARCADE_CONFIGS.forEach((data, index) => {
-                const isLeft = index % 2 === 0;
-                const row = Math.floor(index / 2);
-
-                const posX = isLeft ? -7.0 : 7.0;
-                const posZ = 6.0 - (row * spacingZ);
-                const rotY = isLeft ? Math.PI / 2.3 : -Math.PI / 2.3;
-
-                const cabinetData = createCabinetMesh(data, index);
-                const group = cabinetData.group;
-
-                group.position.set(posX, 0, posZ);
-                group.rotation.y = rotY;
-
-                scene.add(group);
-
-                // Dedicated light source in cabinet's neon color
-                const colorHex = parseInt(data.color.replace('#', '0x'));
-                const cabLight = new THREE.PointLight(colorHex, 1.6, 6);
-                cabLight.position.set(posX, 2.2, posZ);
-                scene.add(cabLight);
-
-                arcadeCabinets.push({
-                    id: data.id,
-                    config: data,
-                    group: group,
-                    screenMesh: cabinetData.screenMesh,
-                    screenCanvas: cabinetData.screenCanvas,
-                    screenCtx: cabinetData.screenCtx,
-                    joystickMesh: cabinetData.joystickMesh,
-                    light: cabLight,
-                    minX: posX - 1.8,
-                    maxX: posX + 1.8,
-                    minZ: posZ - 1.8,
-                    maxZ: posZ + 1.8
-                });
-            });
-        }
-
-        function createCabinetMesh(data, index) {
-            const group = new THREE.Group();
-            const mainColorHex = parseInt(data.color.replace('#', '0x'));
-
-            const bodyMat = new THREE.MeshStandardMaterial({ color: 0x120d22, roughness: 0.4, metalness: 0.6 });
-            const sidePanelMat = new THREE.MeshStandardMaterial({ color: 0x1a1230, roughness: 0.3 });
-            const neonMat = new THREE.MeshStandardMaterial({ color: mainColorHex, emissive: mainColorHex, emissiveIntensity: 0.8 });
-
-            // Base Cabinet Geometry
-            const baseGeo = new THREE.BoxGeometry(1.4, 2.2, 1.2);
-            const baseMesh = new THREE.Mesh(baseGeo, bodyMat);
-            baseMesh.position.y = 1.1;
-            group.add(baseMesh);
-
-            // Side Panel Profile
-            const sideShape = new THREE.Shape();
-            sideShape.moveTo(0, 0);
-            sideShape.lineTo(0, 3.2);
-            sideShape.lineTo(1.2, 3.2);
-            sideShape.lineTo(1.2, 2.2);
-            sideShape.lineTo(1.5, 1.6);
-            sideShape.lineTo(1.5, 0);
-            sideShape.closePath();
-
-            const extrudeSettings = { depth: 0.05, bevelEnabled: true, bevelSegments: 2, steps: 1, bevelSize: 0.02, bevelThickness: 0.02 };
-            const sideGeo = new THREE.ExtrudeGeometry(sideShape, extrudeSettings);
-
-            const leftSide = new THREE.Mesh(sideGeo, sidePanelMat);
-            leftSide.position.set(-0.73, 0, -0.6);
-            group.add(leftSide);
-
-            const rightSide = new THREE.Mesh(sideGeo, sidePanelMat);
-            rightSide.position.set(0.68, 0, -0.6);
-            group.add(rightSide);
-
-            // Neon Side Trims
-            const trimGeo = new THREE.BoxGeometry(0.04, 3.2, 0.04);
-            const trimL = new THREE.Mesh(trimGeo, neonMat);
-            trimL.position.set(-0.74, 1.6, 0.88);
-            group.add(trimL);
-
-            const trimR = new THREE.Mesh(trimGeo, neonMat);
-            trimR.position.set(0.74, 1.6, 0.88);
-            group.add(trimR);
-
-            // CRT Screen Housing Frame
-            const screenFrame = new THREE.Mesh(new THREE.BoxGeometry(1.28, 1.1, 0.1), bodyMat);
-            screenFrame.position.set(0, 2.2, 0.25);
-            screenFrame.rotation.x = -0.22;
-            group.add(screenFrame);
-
-            // Dynamic Screen Texture Canvas
-            const screenCanvas = document.createElement('canvas');
-            screenCanvas.width = 512;
-            screenCanvas.height = 384;
-            const screenCtx = screenCanvas.getContext('2d');
-
-            const screenTexture = new THREE.CanvasTexture(screenCanvas);
-            const screenMat = new THREE.MeshBasicMaterial({ map: screenTexture });
-
-            const screenMesh = new THREE.Mesh(new THREE.PlaneGeometry(1.18, 0.95), screenMat);
-            screenMesh.position.set(0, 2.2, 0.31);
-            screenMesh.rotation.x = -0.22;
-            group.add(screenMesh);
-
-            // UserData Metadata for Raycaster target mapping
-            screenMesh.userData = { cabinetId: data.id };
-            baseMesh.userData = { cabinetId: data.id };
-
-            // Illuminated Marquee Banner
-            const marqueeCanvas = document.createElement('canvas');
-            marqueeCanvas.width = 512;
-            marqueeCanvas.height = 128;
-            const mCtx = marqueeCanvas.getContext('2d');
-
-            mCtx.fillStyle = '#080312';
-            mCtx.fillRect(0, 0, 512, 128);
-            mCtx.strokeStyle = data.color;
-            mCtx.lineWidth = 10;
-            mCtx.strokeRect(5, 5, 502, 118);
-
-            mCtx.shadowColor = data.color;
-            mCtx.shadowBlur = 18;
-            mCtx.fillStyle = '#ffffff';
-            mCtx.font = 'bold 42px "Orbitron", sans-serif';
-            mCtx.textAlign = 'center';
-            mCtx.fillText(data.title, 256, 75);
-
-            const marqueeTexture = new THREE.CanvasTexture(marqueeCanvas);
-            const marqueeMesh = new THREE.Mesh(new THREE.BoxGeometry(1.28, 0.45, 0.2), new THREE.MeshBasicMaterial({ map: marqueeTexture }));
-            marqueeMesh.position.set(0, 2.95, 0.35);
-            group.add(marqueeMesh);
-
-            // Control Deck & Joystick
-            const deck = new THREE.Mesh(new THREE.BoxGeometry(1.28, 0.1, 0.55), bodyMat);
-            deck.position.set(0, 1.48, 0.5);
-            deck.rotation.x = 0.25;
-            group.add(deck);
-
-            const stickGroup = new THREE.Group();
-            const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.18), new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 0.9 }));
-            shaft.position.y = 0.09;
-
-            const ball = new THREE.Mesh(new THREE.SphereGeometry(0.05, 16, 16), neonMat);
-            ball.position.y = 0.18;
-
-            stickGroup.add(shaft);
-            stickGroup.add(ball);
-            stickGroup.position.set(-0.35, 1.55, 0.55);
-            group.add(stickGroup);
-
-            // Illuminated Control Buttons
-            const btnColors = [0xff0055, 0x00f0ff, 0xffe600, 0x39ff14];
-            for (let b = 0; b < 4; b++) {
-                const btnMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.03, 16), new THREE.MeshStandardMaterial({
-                    color: btnColors[b],
-                    emissive: btnColors[b],
-                    emissiveIntensity: 0.7
-                }));
-                btnMesh.position.set(0.05 + (b % 2) * 0.12, 1.54 + Math.floor(b / 2) * 0.02, 0.5 + Math.floor(b / 2) * 0.12);
-                btnMesh.rotation.x = 0.25;
-                group.add(btnMesh);
-            }
-
-            // Coin Slots
-            const coinDoor = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.5, 0.05), sidePanelMat);
-            coinDoor.position.set(0, 0.85, 0.61);
-            group.add(coinDoor);
-
-            for (let c = -1; c <= 1; c += 2) {
-                const slot = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.12, 0.02), new THREE.MeshStandardMaterial({ color: 0xff0022, emissive: 0xff0022, emissiveIntensity: 1 }));
-                slot.position.set(c * 0.1, 0.9, 0.64);
-                group.add(slot);
-            }
-
-            return { group, screenMesh, screenCanvas, screenCtx, joystickMesh: stickGroup };
-        }
-
-        // ====================================================================
-        // 5. UNIFIED COLOR-ADAPTIVE CRT SCREEN GRAPHICS
-        // ====================================================================
-        function updateScreenTextures(time) {
-            arcadeCabinets.forEach((cab) => {
-                const ctx = cab.screenCtx;
-                const width = 512;
-                const height = 384;
-                const config = cab.config;
-
-                // Render single unified animation style dynamically adapting to cabinet theme color
-                renderAdaptiveArcadeScreen(ctx, width, height, time, config);
-
-                cab.screenMesh.material.map.needsUpdate = true;
-            });
-        }
-
-        function renderAdaptiveArcadeScreen(ctx, width, height, time, config) {
-            const primaryColor = config.color || '#ff007f';
-
-            // Dark Backdrop
-            ctx.fillStyle = '#04010a';
-            ctx.fillRect(0, 0, width, height);
-
-            // 1. Perspective Synth Grid (Colored in Cabinet Theme Color)
-            ctx.save();
-            ctx.strokeStyle = primaryColor;
-            ctx.lineWidth = 1.5;
-            ctx.globalAlpha = 0.45;
-            const horizon = height * 0.52;
-
-            for (let x = -width; x <= width * 2; x += 35) {
-                ctx.beginPath();
-                ctx.moveTo(width / 2, horizon);
-                ctx.lineTo(x, height);
-                ctx.stroke();
-            }
-
-            const gridOffset = (time * 65) % 20;
-            for (let y = horizon; y < height; y += 12) {
-                const drawY = y + gridOffset;
-                if (drawY < height) {
-                    ctx.beginPath();
-                    ctx.moveTo(0, drawY);
-                    ctx.lineTo(width, drawY);
-                    ctx.stroke();
-                }
-            }
-            ctx.restore();
-
-            // 2. Animated Audio Wave Visualizer
-            ctx.save();
-            ctx.strokeStyle = primaryColor;
-            ctx.shadowColor = primaryColor;
-            ctx.shadowBlur = 18;
-            ctx.lineWidth = 3.5;
-            ctx.beginPath();
-            const waveCenter = height * 0.38;
-            for (let x = 0; x <= width; x += 8) {
-                const wave1 = Math.sin(x * 0.02 + time * 4.5) * 22;
-                const wave2 = Math.cos(x * 0.05 - time * 3.2) * 12;
-                const y = waveCenter + wave1 + wave2;
-                if (x === 0) ctx.moveTo(x, y);
-                else ctx.lineTo(x, y);
-            }
-            ctx.stroke();
-
-            // Overlay Synth Line
-            ctx.strokeStyle = '#ffffff';
-            ctx.lineWidth = 1.2;
-            ctx.beginPath();
-            for (let x = 0; x <= width; x += 10) {
-                const wave1 = Math.sin(x * 0.035 - time * 5) * 14;
-                const y = waveCenter + wave1;
-                if (x === 0) ctx.moveTo(x, y);
-                else ctx.lineTo(x, y);
-            }
-            ctx.stroke();
-            ctx.restore();
-
-            // 3. Glowing Synth Emblem
-            ctx.save();
-            ctx.beginPath();
-            ctx.arc(width / 2, height * 0.3, 36, 0, Math.PI * 2);
-            ctx.fillStyle = primaryColor;
-            ctx.shadowColor = primaryColor;
-            ctx.shadowBlur = 25;
-            ctx.globalAlpha = 0.35 + Math.sin(time * 3) * 0.15;
-            ctx.fill();
-            ctx.restore();
-
-            // 4. Arcade Title & Category in Cabinet's Theme Color
-            ctx.save();
-            ctx.shadowColor = primaryColor;
-            ctx.shadowBlur = 20;
-            ctx.fillStyle = '#ffffff';
-            ctx.font = '900 32px "Orbitron", sans-serif';
-            ctx.textAlign = 'center';
-            ctx.fillText(config.title.toUpperCase(), width / 2, height * 0.72);
-
-            ctx.font = '600 14px "Orbitron", sans-serif';
-            ctx.fillStyle = primaryColor;
-            ctx.fillText(config.category.toUpperCase(), width / 2, height * 0.80);
-            ctx.restore();
-
-            // 5. Pulsing Prompt
-            ctx.save();
-            const pulseAlpha = 0.45 + Math.sin(time * 6) * 0.45;
-            ctx.globalAlpha = Math.max(0.1, pulseAlpha);
-            ctx.fillStyle = primaryColor;
-            ctx.font = 'bold 13px "Orbitron", sans-serif';
-            ctx.textAlign = 'center';
-            ctx.fillText("▶ CLICK TO LAUNCH PORTAL ◀", width / 2, height * 0.91);
-            ctx.restore();
-
-            // 6. CRT Scanline Grid Lines
-            ctx.save();
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
-            for (let y = 0; y < height; y += 4) {
-                ctx.fillRect(0, y, width, 2);
-            }
-            ctx.restore();
-        }
-
-        // ====================================================================
-        // 6. FIRST-PERSON FPS CONTROLLER & COLLISION LOGIC
-        // ====================================================================
         function setupFPSControls() {
             const hintBanner = document.getElementById('click-hint-banner');
 
-            // Click anywhere to lock pointer & resume Web Audio
             document.addEventListener('click', (e) => {
                 if (e.target.closest('#btn-audio')) return;
 
@@ -751,7 +832,7 @@
                     initAudio();
                     if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
                 } else {
-                    openTargetPortal();
+                    launchTargetPortal();
                 }
             });
 
@@ -765,7 +846,6 @@
                 }
             });
 
-            // FPS Mouse Look
             document.addEventListener('mousemove', (e) => {
                 if (!isPointerLocked) return;
 
@@ -776,14 +856,14 @@
                 pitch = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, pitch));
             });
 
-            // Keyboard Movement
             document.addEventListener('keydown', (e) => {
                 switch (e.code) {
                     case 'KeyW': case 'ArrowUp': moveForward = true; break;
                     case 'KeyS': case 'ArrowDown': moveBackward = true; break;
                     case 'KeyA': case 'ArrowLeft': moveLeft = true; break;
                     case 'KeyD': case 'ArrowRight': moveRight = true; break;
-                    case 'KeyE': openTargetPortal(); break;
+                    case 'KeyM': toggleAudio(); break;
+                    case 'KeyE': launchTargetPortal(); break;
                 }
             });
 
@@ -801,7 +881,6 @@
             if (!isPointerLocked) return;
 
             const moveDir = new THREE.Vector3();
-            
             const front = new THREE.Vector3(-Math.sin(yaw), 0, -Math.cos(yaw)).normalize();
             const right = new THREE.Vector3(Math.cos(yaw), 0, -Math.sin(yaw)).normalize();
 
@@ -813,26 +892,32 @@
             if (moveDir.lengthSq() > 0) {
                 moveDir.normalize();
 
-                // Step SFX
-                stepSoundCooldown -= delta;
-                if (stepSoundCooldown <= 0) {
-                    playFootstepSound();
-                    stepSoundCooldown = 0.38;
-                }
-
                 const nextX = playerPos.x + moveDir.x * walkSpeed * delta;
                 const nextZ = playerPos.z + moveDir.z * walkSpeed * delta;
 
-                // Wall Collisions
                 let validX = nextX;
                 let validZ = nextZ;
 
-                if (validX < -8.8 + playerRadius) validX = -8.8 + playerRadius;
-                if (validX > 8.8 - playerRadius) validX = 8.8 - playerRadius;
-                if (validZ < -18.5 + playerRadius) validZ = -18.5 + playerRadius;
-                if (validZ > 18.5 - playerRadius) validZ = 18.5 - playerRadius;
+                // Room Boundary Collisions
+                if (validZ < -9.5) {
+                    // Inside Secret Room (Z: -10 to -21.0, X: -10.2 to -2.8)
+                    if (validX < -10.2 + playerRadius) validX = -10.2 + playerRadius;
+                    if (validX > -2.8 - playerRadius) validX = -2.8 - playerRadius;
+                    if (validZ < -21.0 + playerRadius) validZ = -21.0 + playerRadius;
+                } else {
+                    // Main Arcade Room (Z: -9.5 to 17.0, X: -6.8 to 6.8)
+                    if (validX < -6.8 + playerRadius) validX = -6.8 + playerRadius;
+                    if (validX > 6.8 - playerRadius) validX = 6.8 - playerRadius;
+                    if (validZ > 17.0 - playerRadius) validZ = 17.0 - playerRadius;
 
-                // Cabinet Bounding Box Collisions
+                    // Back Wall Collision (Z = -9.5) with Seamless Portal Gap (X: -7.0 to -4.5)
+                    const isFacingPortal = (validX >= -7.0 && validX <= -4.5);
+                    if (!isFacingPortal && validZ < -9.5 + playerRadius) {
+                        validZ = -9.5 + playerRadius;
+                    }
+                }
+
+                // Cabinet Collisions
                 arcadeCabinets.forEach(cab => {
                     if (validX > cab.minX - playerRadius && validX < cab.maxX + playerRadius &&
                         validZ > cab.minZ - playerRadius && validZ < cab.maxZ + playerRadius) {
@@ -850,16 +935,12 @@
                 playerPos.z = validZ;
             }
 
-            // Update Camera Position & Rotation
             camera.position.copy(playerPos);
 
             const euler = new THREE.Euler(pitch, yaw, 0, 'YXZ');
             camera.quaternion.setFromEuler(euler);
         }
 
-        // ====================================================================
-        // 7. TARGET RAYCASTING & INTERACTION
-        // ====================================================================
         function updateRaycasting() {
             if (!isPointerLocked) {
                 hideHUDPrompt();
@@ -881,10 +962,10 @@
                 if (cabinet) {
                     if (targetCabinet !== cabinet) {
                         targetCabinet = cabinet;
-                        playSynthBeep(650, 0.06, 'sine', 0.08);
+                        playSynthBeep(620, 0.05, 'sine', 0.06);
                         showHUDPrompt(cabinet);
                     }
-                    crosshair.classList.add('reticle-active');
+                    crosshair.classList.add('reticle-locked');
                     return;
                 }
             }
@@ -893,13 +974,21 @@
                 targetCabinet = null;
                 hideHUDPrompt();
             }
-            crosshair.classList.remove('reticle-active');
+            crosshair.classList.remove('reticle-locked');
         }
 
         function showHUDPrompt(cabinet) {
             const prompt = document.getElementById('hud-prompt');
-            document.getElementById('hud-title').innerText = cabinet.config.title;
-            document.getElementById('hud-title').style.color = cabinet.config.color;
+            const titleEl = document.getElementById('hud-title');
+
+            titleEl.innerText = cabinet.config.title;
+
+            if (cabinet.config.isSecret) {
+                titleEl.className = 'font-pixel font-bold text-base md:text-lg text-amber-400 mb-1';
+            } else {
+                titleEl.className = 'font-orbitron font-extrabold text-lg md:text-xl text-white';
+            }
+
             document.getElementById('hud-url').innerText = cabinet.config.url;
             document.getElementById('hud-category').innerText = cabinet.config.category;
 
@@ -910,20 +999,16 @@
         function hideHUDPrompt() {
             const prompt = document.getElementById('hud-prompt');
             prompt.style.opacity = '0';
-            prompt.style.transform = 'translate(-50%, 10px) scale(0.95)';
+            prompt.style.transform = 'translate(-50%, 8px) scale(0.95)';
         }
 
-        function openTargetPortal() {
+        function launchTargetPortal() {
             if (targetCabinet && targetCabinet.config.url) {
-                playCoinSound();
-                // REPLACES CURRENT TAB IMMEDIATELY
+                playSynthBeep(880, 0.15, 'triangle', 0.2);
                 window.location.href = targetCabinet.config.url;
             }
         }
 
-        // ====================================================================
-        // 8. ANIMATION LOOP & ENGINE START
-        // ====================================================================
         const clock = new THREE.Clock();
 
         function animate() {
@@ -932,23 +1017,9 @@
             const delta = Math.min(clock.getDelta(), 0.1);
             const elapsedTime = clock.getElapsedTime();
 
-            // FPS Physics Movement
             updatePlayerMovement(delta);
-
-            // Center Raycasting
             updateRaycasting();
-
-            // Dynamic Screen Textures & Hardware Animations
             updateScreenTextures(elapsedTime);
-
-            arcadeCabinets.forEach((cab, idx) => {
-                if (cab.joystickMesh) {
-                    cab.joystickMesh.rotation.z = Math.sin(elapsedTime * 3 + idx) * 0.15;
-                }
-                if (cab.light) {
-                    cab.light.intensity = 1.4 + Math.sin(elapsedTime * 4 + idx) * 0.4;
-                }
-            });
 
             renderer.render(scene, camera);
         }
@@ -959,7 +1030,6 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
         }
 
-        // Initialize scene on window load
         window.onload = () => {
             init3DScene();
         };
