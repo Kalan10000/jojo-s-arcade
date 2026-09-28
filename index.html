@@ -98,7 +98,6 @@
     </div>
 
     <script>
-        // Ajout/Suppression de jeux simplifiée sans besoin d'identifiants (ID)
         const MAIN_ARCADE_CONFIGS = [
             { title: "LABYRINTHE", category: "Labyrinthe", url: "https://labyrintheajojo.vercel.app/", color: "#ff0055" },
             { title: "TOUR INFINIE", category: "Tour infinie", url: "https://tourinfinie.vercel.app", color: "#00f3ff" },
@@ -117,7 +116,6 @@
             isSecret: true
         };
 
-        // Calcul dynamique de la taille de la salle selon le nombre de jeux
         const totalRows = Math.max(1, Math.ceil(MAIN_ARCADE_CONFIGS.length / 2));
         const rowSpacing = 4.0;
         const firstRowZ = 3.0;
@@ -156,6 +154,17 @@
             currentRotation: 0,
             isExit: true
         };
+
+        let wcDoor = {
+            group: null,
+            pivotGroup: null,
+            panelMesh: null,
+            isOpen: false,
+            targetRotation: 0,
+            currentRotation: 0,
+            isWC: true
+        };
+
         let isExiting = false;
 
         let audioCtx = null;
@@ -201,6 +210,29 @@
             return canvas;
         }
 
+        function generateTileCanvas(width = 512, height = 512, tileColor = '#1a2230', gridColor = '#0d121c') {
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+
+            ctx.fillStyle = tileColor;
+            ctx.fillRect(0, 0, width, height);
+
+            ctx.strokeStyle = gridColor;
+            ctx.lineWidth = 4;
+
+            const tileSize = 64;
+            for (let x = 0; x <= width; x += tileSize) {
+                ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, height); ctx.stroke();
+            }
+            for (let y = 0; y <= height; y += tileSize) {
+                ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(width, y); ctx.stroke();
+            }
+
+            return canvas;
+        }
+
         function init3DScene() {
             const container = document.getElementById('canvas-container');
 
@@ -228,6 +260,7 @@
             setupMainHall();
             setupSecretRoom();
             setupExitDoor();
+            setupToiletRoom();
 
             buildMainCabinets();
             buildSecretCabinet();
@@ -317,13 +350,21 @@
             frontWallTop.position.set(0, 3.95, frontZ);
             scene.add(frontWallTop);
 
-            const backWallSolid = new THREE.Mesh(new THREE.BoxGeometry(9.5, 5.2, 0.3), wallMat);
-            backWallSolid.position.set(2.75, 2.6, backWallZ);
-            scene.add(backWallSolid);
-
             const fakeClipWall = new THREE.Mesh(new THREE.BoxGeometry(5.5, 5.2, 0.3), wallMat);
             fakeClipWall.position.set(-4.75, 2.6, backWallZ);
             scene.add(fakeClipWall);
+
+            const backWallLeft = new THREE.Mesh(new THREE.BoxGeometry(6.25, 5.2, 0.3), wallMat);
+            backWallLeft.position.set(1.125, 2.6, backWallZ);
+            scene.add(backWallLeft);
+
+            const wcWallTop = new THREE.Mesh(new THREE.BoxGeometry(1.5, 2.6, 0.3), wallMat);
+            wcWallTop.position.set(5.0, 3.9, backWallZ);
+            scene.add(wcWallTop);
+
+            const backWallRight = new THREE.Mesh(new THREE.BoxGeometry(1.75, 5.2, 0.3), wallMat);
+            backWallRight.position.set(6.625, 2.6, backWallZ);
+            scene.add(backWallRight);
 
             createCleanSign(0, 3.8, backWallZ + 0.18, 0);
         }
@@ -402,6 +443,150 @@
             exitDoor.group = doorGroup;
             exitDoor.pivotGroup = pivotGroup;
             exitDoor.panelMesh = panelMesh;
+        }
+
+        function setupToiletRoom() {
+            const wcRoomZ = -6.0;
+            const wcRoomCenterX = 5.0;
+
+            const wcTileCanvas = generateTileCanvas(512, 512, '#18202c', '#0d131d');
+            const wcTileTex = new THREE.CanvasTexture(wcTileCanvas);
+            wcTileTex.wrapS = THREE.RepeatWrapping;
+            wcTileTex.wrapT = THREE.RepeatWrapping;
+            wcTileTex.repeat.set(3, 3);
+
+            const wcFloorMat = new THREE.MeshStandardMaterial({ map: wcTileTex, roughness: 0.3, metalness: 0.1 });
+            const wcFloor = new THREE.Mesh(new THREE.PlaneGeometry(5.0, 5.0), wcFloorMat);
+            wcFloor.rotation.x = -Math.PI / 2;
+            wcFloor.position.set(wcRoomCenterX, 0.001, -3.5);
+            scene.add(wcFloor);
+
+            const wcCeilingMat = new THREE.MeshStandardMaterial({ color: 0x101622, roughness: 0.8 });
+            const wcCeiling = new THREE.Mesh(new THREE.PlaneGeometry(5.0, 5.0), wcCeilingMat);
+            wcCeiling.rotation.x = Math.PI / 2;
+            wcCeiling.position.set(wcRoomCenterX, 5.2, -3.5);
+            scene.add(wcCeiling);
+
+            const wcWallMat = new THREE.MeshStandardMaterial({ map: wcTileTex, roughness: 0.4 });
+
+            const wcBackWall = new THREE.Mesh(new THREE.BoxGeometry(5.3, 5.2, 0.3), wcWallMat);
+            wcBackWall.position.set(wcRoomCenterX, 2.6, wcRoomZ);
+            scene.add(wcBackWall);
+
+            const wcRightWall = new THREE.Mesh(new THREE.BoxGeometry(0.3, 5.2, 5.0), wcWallMat);
+            wcRightWall.position.set(7.5, 2.6, -3.5);
+            scene.add(wcRightWall);
+
+            const wcLeftWall = new THREE.Mesh(new THREE.BoxGeometry(0.3, 5.2, 5.0), wcWallMat);
+            wcLeftWall.position.set(2.5, 2.6, -3.5);
+            scene.add(wcLeftWall);
+
+            // Lumière confinée aux dimensions des WC pour ne pas traverser les murs
+            const wcLight = new THREE.PointLight(0x00f0ff, 1.8, 3.2, 2.0);
+            wcLight.position.set(wcRoomCenterX, 3.8, -3.5);
+            scene.add(wcLight);
+
+            const textureLoader = new THREE.TextureLoader();
+            textureLoader.load('https://img.pikbest.com/origin/09/27/57/05IpIkbEsTGPf.png!sw800', (imgTex) => {
+                const imgMat = new THREE.MeshBasicMaterial({ map: imgTex, transparent: true });
+                const imgMesh = new THREE.Mesh(new THREE.PlaneGeometry(2.3, 2.3), imgMat);
+                imgMesh.position.set(wcRoomCenterX, 2.1, wcRoomZ + 0.18);
+                scene.add(imgMesh);
+            });
+
+            const textCanvas = document.createElement('canvas');
+            textCanvas.width = 1024;
+            textCanvas.height = 256;
+            const tCtx = textCanvas.getContext('2d');
+
+            tCtx.fillStyle = '#080c14';
+            tCtx.fillRect(0, 0, 1024, 256);
+
+            tCtx.strokeStyle = '#00f0ff';
+            tCtx.lineWidth = 8;
+            tCtx.strokeRect(8, 8, 1008, 240);
+
+            tCtx.fillStyle = '#ffffff';
+            tCtx.font = '700 36px "Orbitron", sans-serif';
+            tCtx.textAlign = 'center';
+            tCtx.textBaseline = 'middle';
+            tCtx.fillText("Tu veux vraiment aller aux toilettes", 512, 90);
+            tCtx.fillText("dans un jeu vidéo?", 512, 160);
+
+            const textTex = new THREE.CanvasTexture(textCanvas);
+            const textMat = new THREE.MeshBasicMaterial({ map: textTex, transparent: true });
+            const textMesh = new THREE.Mesh(new THREE.PlaneGeometry(3.6, 0.9), textMat);
+            textMesh.position.set(wcRoomCenterX, 3.9, wcRoomZ + 0.18);
+            scene.add(textMesh);
+
+            const doorGroup = new THREE.Group();
+            doorGroup.position.set(wcRoomCenterX, 0, backWallZ);
+
+            const frameMat = new THREE.MeshStandardMaterial({ color: 0x121824, roughness: 0.4, metalness: 0.8 });
+            const frameL = new THREE.Mesh(new THREE.BoxGeometry(0.12, 2.6, 0.15), frameMat);
+            frameL.position.set(-0.75, 1.3, 0);
+            doorGroup.add(frameL);
+
+            const frameR = new THREE.Mesh(new THREE.BoxGeometry(0.12, 2.6, 0.15), frameMat);
+            frameR.position.set(0.75, 1.3, 0);
+            doorGroup.add(frameR);
+
+            const frameTop = new THREE.Mesh(new THREE.BoxGeometry(1.62, 0.12, 0.15), frameMat);
+            frameTop.position.set(0, 2.54, 0);
+            doorGroup.add(frameTop);
+
+            const pivotGroup = new THREE.Group();
+            pivotGroup.position.set(-0.72, 1.25, 0);
+
+            const doorMat = new THREE.MeshStandardMaterial({
+                color: 0x122436,
+                roughness: 0.3,
+                metalness: 0.6,
+                emissive: 0x002b47,
+                emissiveIntensity: 0.3
+            });
+            const panelMesh = new THREE.Mesh(new THREE.BoxGeometry(1.44, 2.45, 0.08), doorMat);
+            panelMesh.position.set(0.72, 0, 0);
+            panelMesh.userData = { isWCDoor: true };
+            pivotGroup.add(panelMesh);
+
+            const handleMat = new THREE.MeshStandardMaterial({ color: 0x00f0ff, metalness: 0.9, roughness: 0.1, emissive: 0x00f0ff, emissiveIntensity: 0.6 });
+            const handleBar = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.25, 0.08), handleMat);
+            handleBar.position.set(1.30, 0, 0.06);
+            pivotGroup.add(handleBar);
+
+            doorGroup.add(pivotGroup);
+
+            const wcSignCanvas = document.createElement('canvas');
+            wcSignCanvas.width = 256;
+            wcSignCanvas.height = 128;
+            const wcCtx = wcSignCanvas.getContext('2d');
+
+            wcCtx.fillStyle = '#050a12';
+            wcCtx.fillRect(0, 0, 256, 128);
+
+            wcCtx.strokeStyle = '#00f0ff';
+            wcCtx.lineWidth = 6;
+            wcCtx.strokeRect(6, 6, 244, 116);
+
+            wcCtx.fillStyle = '#ffffff';
+            wcCtx.font = '900 56px "Orbitron", sans-serif';
+            wcCtx.textAlign = 'center';
+            wcCtx.fillText('WC', 128, 84);
+
+            const wcSignTex = new THREE.CanvasTexture(wcSignCanvas);
+            const wcSignMesh = new THREE.Mesh(
+                new THREE.PlaneGeometry(1.2, 0.6),
+                new THREE.MeshBasicMaterial({ map: wcSignTex, transparent: true })
+            );
+            wcSignMesh.position.set(0, 2.95, 0.18);
+            doorGroup.add(wcSignMesh);
+
+            scene.add(doorGroup);
+
+            wcDoor.group = doorGroup;
+            wcDoor.pivotGroup = pivotGroup;
+            wcDoor.panelMesh = panelMesh;
         }
 
         function setupSecretRoom() {
@@ -945,8 +1130,12 @@
 
             const inMainHall = (x >= -7.5 + playerRadius && x <= 7.5 - playerRadius && z >= backWallZ + playerRadius && z <= frontZ - playerRadius);
             const inSecretArea = (x >= -11.0 + playerRadius && x <= -2.0 - playerRadius && z >= -9.0 + playerRadius && z <= backWallZ + playerRadius);
+            const inWCArea = (x >= 2.5 + playerRadius && x <= 7.5 - playerRadius && z >= -6.0 + playerRadius && z <= backWallZ - playerRadius);
 
-            return inMainHall || inSecretArea;
+            const passingSecretDoor = (x <= -2.0 - playerRadius && x >= -7.5 + playerRadius && Math.abs(z - backWallZ) <= playerRadius);
+            const passingWCDoor = (wcDoor.isOpen && Math.abs(x - 5.0) < 0.65 && z >= -6.0 + playerRadius && z <= frontZ - playerRadius);
+
+            return inMainHall || inSecretArea || inWCArea || passingSecretDoor || passingWCDoor;
         }
 
         function updatePlayerMovement(delta) {
@@ -1017,6 +1206,7 @@
             const interactables = [];
             arcadeCabinets.forEach(cab => interactables.push(cab.screenMesh));
             if (exitDoor.panelMesh) interactables.push(exitDoor.panelMesh);
+            if (wcDoor.panelMesh) interactables.push(wcDoor.panelMesh);
 
             const intersects = raycaster.intersectObjects(interactables);
             const crosshair = document.getElementById('crosshair');
@@ -1029,6 +1219,14 @@
                         targetInteractable = exitDoor;
                         playSynthBeep(620, 0.05, 'sine', 0.06);
                         showExitDoorHUD();
+                    }
+                    crosshair.classList.add('reticle-locked');
+                    return;
+                } else if (hitObj.userData.isWCDoor) {
+                    if (targetInteractable !== wcDoor) {
+                        targetInteractable = wcDoor;
+                        playSynthBeep(620, 0.05, 'sine', 0.06);
+                        showWCDoorHUD();
                     }
                     crosshair.classList.add('reticle-locked');
                     return;
@@ -1089,6 +1287,23 @@
             prompt.style.transform = 'translate(-50%, 0) scale(1)';
         }
 
+        function showWCDoorHUD() {
+            const prompt = document.getElementById('hud-prompt');
+            const titleEl = document.getElementById('hud-title');
+
+            titleEl.innerText = "TOILETTES (WC)";
+            titleEl.className = 'font-orbitron font-extrabold text-lg md:text-xl text-cyan-400';
+
+            document.getElementById('hud-url').innerText = "Porte des sanitaires";
+            document.getElementById('hud-category').innerText = "RESTROOM";
+
+            const actionText = wcDoor.isOpen ? "CLIQUEZ / [E] POUR FERMER LA PORTE" : "CLIQUEZ OU APPUYEZ SUR [E] POUR OUVRIR LA PORTE";
+            document.getElementById('hud-action-text').innerText = actionText;
+
+            prompt.style.opacity = '1';
+            prompt.style.transform = 'translate(-50%, 0) scale(1)';
+        }
+
         function hideHUDPrompt() {
             const prompt = document.getElementById('hud-prompt');
             prompt.style.opacity = '0';
@@ -1102,6 +1317,12 @@
                     exitDoor.targetRotation = exitDoor.isOpen ? -Math.PI * 0.52 : 0;
                     playSynthBeep(exitDoor.isOpen ? 520 : 380, 0.15, 'triangle', 0.15);
                     showExitDoorHUD();
+                } else if (targetInteractable.isWC) {
+                    wcDoor.isOpen = !wcDoor.isOpen;
+                    // Rotation de 90 degrés (Math.PI / 2)
+                    wcDoor.targetRotation = wcDoor.isOpen ? Math.PI / 2 : 0;
+                    playSynthBeep(wcDoor.isOpen ? 520 : 380, 0.15, 'triangle', 0.15);
+                    showWCDoorHUD();
                 } else if (targetInteractable.config && targetInteractable.config.url) {
                     playSynthBeep(880, 0.15, 'triangle', 0.2);
                     window.location.href = targetInteractable.config.url;
@@ -1168,6 +1389,20 @@
                 }
                 
                 exitDoor.pivotGroup.rotation.y = exitDoor.currentRotation;
+            }
+
+            // Animation de la porte des WC sur 90 degres (PI/2) effectuee en exactement 1 seconde
+            if (Math.abs(wcDoor.currentRotation - wcDoor.targetRotation) > 0.001) {
+                const diff = wcDoor.targetRotation - wcDoor.currentRotation;
+                const step = Math.sign(diff) * delta * (Math.PI / 2);
+                
+                if (Math.abs(step) >= Math.abs(diff)) {
+                    wcDoor.currentRotation = wcDoor.targetRotation;
+                } else {
+                    wcDoor.currentRotation += step;
+                }
+                
+                wcDoor.pivotGroup.rotation.y = wcDoor.currentRotation;
             }
 
             updatePlayerMovement(delta);
