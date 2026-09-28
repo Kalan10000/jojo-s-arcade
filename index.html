@@ -358,7 +358,7 @@
             scene.add(ceiling);
 
             // Using solid BoxGeometry for seamless walls (with thickness to prevent see-through gaps)
-            const wallMat = new === undefined ? null : new THREE.MeshStandardMaterial({ color: 0x0f0b1a, roughness: 0.7 });
+            const wallMat = new THREE.MeshStandardMaterial({ color: 0x0f0b1a, roughness: 0.7 });
 
             const leftWall = new THREE.Mesh(new THREE.BoxGeometry(0.3, 5.2, hallLength), wallMat);
             leftWall.position.set(-7.5, 2.6, hallCenterZ);
