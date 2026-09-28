@@ -306,12 +306,12 @@
             frontWallTop.position.set(0, 3.95, frontZ);
             scene.add(frontWallTop);
 
-            // Back wall sections (with open walk-through partition into secret room)
-            const backRightWall = new THREE.Mesh(new THREE.BoxGeometry(9.5, 5.2, 0.3), wallMat);
-            backRightWall.position.set(2.75, 2.6, backWallZ);
-            scene.add(backRightWall);
+            // Closed back wall covering right and center (from x = -2.0 to 7.5), hiding secret room from direct view
+            const backWallSolid = new THREE.Mesh(new THREE.BoxGeometry(9.5, 5.2, 0.3), wallMat);
+            backWallSolid.position.set(2.75, 2.6, backWallZ);
+            scene.add(backWallSolid);
 
-            createCleanSign(0, 3.8, backWallZ - 0.15, 0);
+            createCleanSign(1.5, 3.8, backWallZ + 0.12, Math.PI);
         }
 
         function setupExitDoor() {
@@ -458,7 +458,7 @@
 
             const signTex = new THREE.CanvasTexture(canvas);
             const signMat = new THREE.MeshBasicMaterial({ map: signTex, transparent: true });
-            const signMesh = new THREE.Mesh(new THREE.PlaneGeometry(10, 2.5), signMat);
+            const signMesh = new THREE.Mesh(new THREE.PlaneGeometry(8, 2), signMat);
             signMesh.position.set(x, y, z);
             signMesh.rotation.y = rotY;
             scene.add(signMesh);
@@ -917,17 +917,19 @@
         }
 
         function isWalkable(x, z) {
+            // Front exit door boundary check
             if (z > frontZ - playerRadius) {
                 if (Math.abs(x) < 0.75 && exitDoor.isOpen) return true;
                 return false;
             }
 
-            // Allow walking freely across the main hall and secret room combined
-            if (x >= -11.0 + playerRadius && x <= 7.5 - playerRadius && z >= -9.0 + playerRadius && z <= frontZ - playerRadius) {
-                return true;
-            }
+            // Main Hall bounds
+            const inMainHall = (x >= -7.5 + playerRadius && x <= 7.5 - playerRadius && z >= backWallZ + playerRadius && z <= frontZ - playerRadius);
 
-            return false;
+            // Secret Room & Corridor bounds (accessed via left passage)
+            const inSecretArea = (x >= -11.0 + playerRadius && x <= -2.0 - playerRadius && z >= -9.0 + playerRadius && z <= backWallZ + playerRadius);
+
+            return inMainHall || inSecretArea;
         }
 
         function updatePlayerMovement(delta) {
