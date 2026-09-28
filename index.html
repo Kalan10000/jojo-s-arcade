@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" class="h-full w-full overflow-hidden">
+<html lang="fr" class="h-full w-full overflow-hidden">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -70,9 +70,9 @@
     <div id="click-hint-banner" class="fixed top-5 left-1/2 -translate-x-1/2 z-30 pointer-events-none transition-opacity duration-500">
         <div class="glass-panel px-5 py-2 rounded-xl border border-slate-700 shadow-lg flex items-center space-x-3 text-xs font-orbitron">
             <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
-            <span class="text-cyan-300 font-bold">CLICK SCENE TO CONTROL</span>
+            <span class="text-cyan-300 font-bold">CLIQUER POUR CONTRÔLER</span>
             <span class="text-slate-600">|</span>
-            <span class="text-slate-300"><i class="fa-solid fa-keyboard mr-1"></i> WASD to walk</span>
+            <span class="text-slate-300"><i class="fa-solid fa-keyboard mr-1"></i> ZQSD / WASD pour marcher</span>
         </div>
     </div>
 
@@ -81,11 +81,11 @@
         <div class="flex items-center justify-center space-x-2 mb-1">
             <span id="hud-category" class="px-2.5 py-0.5 rounded-full text-[10px] font-orbitron uppercase tracking-wider bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">GENRE</span>
         </div>
-        <h3 id="hud-title" class="font-orbitron font-extrabold text-lg md:text-xl text-white">GAME TITLE</h3>
+        <h3 id="hud-title" class="font-orbitron font-extrabold text-lg md:text-xl text-white">TITRE DU JEU</h3>
         <p id="hud-url" class="text-xs font-mono text-cyan-300/80 truncate max-w-xs mb-2.5">https://example.com</p>
         <div id="hud-button-badge" class="inline-flex items-center space-x-2 bg-pink-600/40 px-3.5 py-1 rounded-lg border border-pink-500/50 text-pink-200 text-[11px] font-orbitron">
             <i class="fa-solid fa-arrow-pointer text-xs"></i>
-            <span id="hud-action-text">CLICK OR PRESS [E] TO LAUNCH</span>
+            <span id="hud-action-text">CLIQUER OU APPUYER SUR [E] POUR LANCER</span>
         </div>
     </div>
 
@@ -93,13 +93,13 @@
     <div class="fixed bottom-5 right-5 z-30">
         <button id="btn-audio" onclick="toggleAudio()" class="px-4 py-2.5 rounded-xl glass-panel text-slate-300 hover:text-cyan-300 border border-slate-700/80 hover:border-cyan-500/60 transition shadow-md flex items-center space-x-2 text-xs font-orbitron">
             <i id="audio-icon" class="fa-solid fa-volume-xmark text-pink-400 text-sm"></i>
-            <span id="audio-text" class="hidden sm:inline">SYNTH MUSIC [M]</span>
+            <span id="audio-text" class="hidden sm:inline">MUSIQUE SYNTHÉ [M]</span>
         </button>
     </div>
 
     <script>
         const MAIN_ARCADE_CONFIGS = [
-            { id: 0, title: "LABYRINTHE", category: "3D Labyrinth", url: "https://labyrintheajojo.vercel.app/", color: "#ff0055" },
+            { id: 0, title: "LABYRINTHE", category: "Labyrinthe 3D", url: "https://labyrintheajojo.vercel.app/", color: "#ff0055" },
             { id: 1, title: "TOUR INFINIE", category: "Tour infinie", url: "https://tourinfinie.vercel.app", color: "#00f3ff" },
             { id: 2, title: "NEON OVERDRIVE", category: "Neon overdrive", url: "https://neonoverdrive.vercel.app", color: "#39ff14" },
             { id: 3, title: "SPACIAL MASTER", category: "Spacial master", url: "https://spacialmaster.vercel.app", color: "#bf00ff" },
@@ -110,7 +110,7 @@
         const SECRET_CABINET_CONFIG = {
             id: 99,
             title: "KALAN'S GAMES",
-            category: "VINTAGE CLASSIC",
+            category: "CLASSIQUE VINTAGE",
             url: "https://kalansgames.vercel.app/",
             color: "#ffaa00",
             isSecret: true
@@ -323,7 +323,6 @@
             fakeClipWall.position.set(-4.75, 2.6, backWallZ);
             scene.add(fakeClipWall);
 
-            // Centered "JOJO'S ARCADE" sign in the middle of the wall (x = 0)
             createCleanSign(0, 3.8, backWallZ + 0.18, 0);
         }
 
@@ -366,7 +365,7 @@
 
             doorGroup.add(pivotGroup);
 
-            // Exit Sign above door
+            // Exit Sign above door (Panneau de Sortie)
             const exitCanvas = document.createElement('canvas');
             exitCanvas.width = 512;
             exitCanvas.height = 128;
@@ -382,7 +381,7 @@
             ctx.fillStyle = '#ffffff';
             ctx.font = '900 52px "Orbitron", sans-serif';
             ctx.textAlign = 'center';
-            ctx.fillText('EXIT DOOR', 256, 82);
+            ctx.fillText('SORTIE', 256, 82);
 
             const exitTex = new THREE.CanvasTexture(exitCanvas);
             const signMesh = new THREE.Mesh(
@@ -473,8 +472,8 @@
             ctx.fillText("JOJO'S ARCADE", 512, 110);
 
             ctx.fillStyle = '#ff007f';
-            ctx.font = '700 28px "Orbitron", sans-serif';
-            ctx.fillText('SELECT A CABINET TO LAUNCH PORTAL', 512, 185);
+            ctx.font = '700 24px "Orbitron", sans-serif';
+            ctx.fillText('SÉLECTIONNEZ UNE BORNE POUR OUVRIR UN PORTAIL', 512, 185);
 
             const signTex = new THREE.CanvasTexture(canvas);
             const signMat = new THREE.MeshBasicMaterial({ map: signTex, transparent: true });
@@ -771,7 +770,7 @@
             if (blink) {
                 ctx.fillStyle = '#ffffff';
                 ctx.font = 'bold 12px "Orbitron", sans-serif';
-                ctx.fillText("▶ CLICK TO LAUNCH PORTAL ◀", width / 2, height * 0.92);
+                ctx.fillText("▶ CLIQUER POUR LANCER LE PORTAIL ◀", width / 2, height * 0.92);
             }
 
             ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
@@ -813,7 +812,7 @@
             if (blink) {
                 ctx.fillStyle = '#ffffff';
                 ctx.font = '12px "Press Start 2P"';
-                ctx.fillText("INSERT COIN", width / 2, height * 0.88);
+                ctx.fillText("INSÉRER UNE PIÈCE", width / 2, height * 0.88);
             }
 
             ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
@@ -1067,7 +1066,7 @@
             document.getElementById('hud-url').innerText = cabinet.config.url;
             document.getElementById('hud-category').innerText = cabinet.config.category;
             
-            document.getElementById('hud-action-text').innerText = "CLICK OR PRESS [E] TO LAUNCH";
+            document.getElementById('hud-action-text').innerText = "CLIQUER OU APPUYER SUR [E] POUR LANCER";
 
             prompt.style.opacity = '1';
             prompt.style.transform = 'translate(-50%, 0) scale(1)';
@@ -1077,13 +1076,13 @@
             const prompt = document.getElementById('hud-prompt');
             const titleEl = document.getElementById('hud-title');
 
-            titleEl.innerText = "EXIT DOOR";
+            titleEl.innerText = "PORTE DE SORTIE";
             titleEl.className = 'font-orbitron font-extrabold text-lg md:text-xl text-pink-500';
 
-            document.getElementById('hud-url').innerText = "Walk through or click to toggle door";
-            document.getElementById('hud-category').innerText = "SYSTEM EXIT";
+            document.getElementById('hud-url').innerText = "Traversez ou cliquez pour basculer la porte";
+            document.getElementById('hud-category').innerText = "SORTIE SYSTÈME";
             
-            const actionText = exitDoor.isOpen ? "CLICK/[E] TO CLOSE DOOR (WALK THRU TO EXIT)" : "CLICK OR PRESS [E] TO OPEN DOOR";
+            const actionText = exitDoor.isOpen ? "CLIQUEZ/[E] POUR FERMER LA PORTE (TRAVERSEZ POUR SORTIR)" : "CLIQUEZ OU APPUYEZ SUR [E] POUR OUVRIR LA PORTE";
             document.getElementById('hud-action-text').innerText = actionText;
 
             prompt.style.opacity = '1';
@@ -1136,14 +1135,14 @@
                             <i class="fa-solid fa-arrow-up"></i>
                         </div>
 
-                        <!-- EXPLICIT EXIT TEXT -->
+                        <!-- EXPLICIT EXIT TEXT IN FRENCH -->
                         <h1 class="text-lg md:text-xl font-black text-white tracking-wider leading-relaxed mb-8 uppercase text-cyan-300 drop-shadow-[0_0_10px_rgba(0,240,255,0.4)]">
-                            you want to exit the game? then click the close button
+                            vous voulez quitter le jeu ? alors cliquez sur le bouton fermer
                         </h1>
 
                         <button onclick="location.reload()" class="w-full py-3.5 bg-cyan-600 hover:bg-cyan-500 font-orbitron font-bold text-xs rounded-xl transition text-white shadow-lg shadow-cyan-600/30 flex items-center justify-center space-x-2">
                             <i class="fa-solid fa-rotate-right"></i>
-                            <span>RE-ENTER ARCADE</span>
+                            <span>RÉENTRER DANS L'ARCADE</span>
                         </button>
                     </div>
                 </div>
