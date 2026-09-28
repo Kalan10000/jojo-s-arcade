@@ -145,6 +145,7 @@
             currentRotation: 0,
             isExit: true
         };
+        let exitArrowMesh = null;
         let isExiting = false;
 
         let audioCtx = null;
@@ -244,7 +245,6 @@
                 scene.add(pLight);
             }
 
-            // Strictly position & bound secret room light so zero light leaks onto main hall floor
             const secretRoomLight = new THREE.PointLight(0xffaa44, 1.5, 4.5);
             secretRoomLight.position.set(-6.5, 3.0, -6.5);
             scene.add(secretRoomLight);
@@ -307,18 +307,16 @@
             frontWallTop.position.set(0, 3.95, frontZ);
             scene.add(frontWallTop);
 
-            // Solid back wall covering right and center (x = -2.0 to 7.5)
             const backWallSolid = new THREE.Mesh(new THREE.BoxGeometry(9.5, 5.2, 0.3), wallMat);
             backWallSolid.position.set(2.75, 2.6, backWallZ);
             scene.add(backWallSolid);
 
-            // Fake clip-through wall panel covering the left passage (x = -7.5 to -2.0)
             const fakeClipWall = new THREE.Mesh(new THREE.BoxGeometry(5.5, 5.2, 0.3), wallMat);
             fakeClipWall.position.set(-4.75, 2.6, backWallZ);
             scene.add(fakeClipWall);
 
-            // Back wall Sign "JOJO'S ARCADE" centered on the back wall, facing forward (+Z)
-            createCleanSign(2.75, 3.8, backWallZ + 0.18, 0);
+            // Centered "JOJO'S ARCADE" sign in the exact horizontal middle of the back wall (x = 0)
+            createCleanSign(0, 3.8, backWallZ + 0.18, 0);
         }
 
         function setupExitDoor() {
@@ -360,30 +358,61 @@
 
             doorGroup.add(pivotGroup);
 
-            // EXIT Sign placed above entrance door facing into the arcade (-Z)
+            // Exit sign texture canvas with updated text
             const exitCanvas = document.createElement('canvas');
-            exitCanvas.width = 512;
-            exitCanvas.height = 128;
+            exitCanvas.width = 1024;
+            exitCanvas.height = 384;
             const ctx = exitCanvas.getContext('2d');
-            ctx.fillStyle = '#0a0208';
-            ctx.fillRect(0, 0, 512, 128);
-            ctx.strokeStyle = '#ff0055';
-            ctx.lineWidth = 8;
-            ctx.strokeRect(6, 6, 500, 116);
 
-            ctx.fillStyle = '#ff0055';
-            ctx.font = '900 46px "Orbitron", sans-serif';
+            ctx.fillStyle = '#0a0208';
+            ctx.fillRect(0, 0, 1024, 384);
+
+            ctx.strokeStyle = '#ff0055';
+            ctx.lineWidth = 10;
+            ctx.strokeRect(8, 8, 1008, 368);
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '900 36px "Orbitron", sans-serif';
             ctx.textAlign = 'center';
-            ctx.fillText('EXIT ARCADE', 256, 78);
+            ctx.fillText('YOU WANT TO EXIT THE GAME?', 512, 130);
+
+            ctx.fillStyle = '#00f0ff';
+            ctx.font = '900 32px "Orbitron", sans-serif';
+            ctx.fillText('THEN CLICK THE CLOSE BUTTON', 512, 230);
 
             const exitTex = new THREE.CanvasTexture(exitCanvas);
             const signMesh = new THREE.Mesh(
-                new THREE.PlaneGeometry(1.6, 0.45),
-                new THREE.MeshBasicMaterial({ map: exitTex })
+                new THREE.PlaneGeometry(3.6, 1.35),
+                new THREE.MeshBasicMaterial({ map: exitTex, transparent: true })
             );
-            signMesh.position.set(0, 2.9, -0.18);
+            signMesh.position.set(0, 3.6, -0.18);
             signMesh.rotation.y = Math.PI;
             doorGroup.add(signMesh);
+
+            // Animated Upward Arrow Canvas & Mesh
+            const arrowCanvas = document.createElement('canvas');
+            arrowCanvas.width = 256;
+            arrowCanvas.height = 256;
+            const actx = arrowCanvas.getContext('2d');
+            actx.fillStyle = 'rgba(0,0,0,0)';
+            actx.fillRect(0, 0, 256, 256);
+            
+            actx.fillStyle = '#ff0055';
+            actx.shadowColor = '#ff0055';
+            actx.shadowBlur = 15;
+            actx.font = '900 160px "Orbitron", sans-serif';
+            actx.textAlign = 'center';
+            actx.textBaseline = 'middle';
+            actx.fillText('▲', 128, 128);
+
+            const arrowTex = new THREE.CanvasTexture(arrowCanvas);
+            exitArrowMesh = new THREE.Mesh(
+                new THREE.PlaneGeometry(0.7, 0.7),
+                new THREE.MeshBasicMaterial({ map: arrowTex, transparent: true })
+            );
+            exitArrowMesh.position.set(0, 2.5, -0.18);
+            exitArrowMesh.rotation.y = Math.PI;
+            doorGroup.add(exitArrowMesh);
 
             const exitLight = new THREE.PointLight(0xff0055, 1.4, 6);
             exitLight.position.set(0, 2.7, -0.4);
@@ -929,16 +958,12 @@
         }
 
         function isWalkable(x, z) {
-            // Front exit door boundary check
             if (z > frontZ - playerRadius) {
                 if (Math.abs(x) < 0.75 && exitDoor.isOpen) return true;
                 return false;
             }
 
-            // Main Hall bounds
             const inMainHall = (x >= -7.5 + playerRadius && x <= 7.5 - playerRadius && z >= backWallZ + playerRadius && z <= frontZ - playerRadius);
-
-            // Secret Room & Corridor bounds (includes clipping through fake wall around backWallZ)
             const inSecretArea = (x >= -11.0 + playerRadius && x <= -2.0 - playerRadius && z >= -9.0 + playerRadius && z <= backWallZ + playerRadius);
 
             return inMainHall || inSecretArea;
@@ -1073,10 +1098,10 @@
             const prompt = document.getElementById('hud-prompt');
             const titleEl = document.getElementById('hud-title');
 
-            titleEl.innerText = "EXIT DOOR";
+            titleEl.innerText = "EXIT GAME";
             titleEl.className = 'font-orbitron font-extrabold text-lg md:text-xl text-pink-500';
 
-            document.getElementById('hud-url').innerText = "LEAVE ARCADE & CLOSE TAB";
+            document.getElementById('hud-url').innerText = "you want to exit the game? then click the close button";
             document.getElementById('hud-category').innerText = "SYSTEM EXIT";
             
             const actionText = exitDoor.isOpen ? "CLICK/[E] TO CLOSE (WALK THRU TO EXIT)" : "CLICK OR PRESS [E] TO OPEN DOOR";
@@ -1169,6 +1194,11 @@
                 }
                 
                 exitDoor.pivotGroup.rotation.y = exitDoor.currentRotation;
+            }
+
+            // Animate up arrow floating/bouncing up and down
+            if (exitArrowMesh) {
+                exitArrowMesh.position.y = 2.5 + Math.sin(elapsedTime * 4.5) * 0.09;
             }
 
             updatePlayerMovement(delta);
