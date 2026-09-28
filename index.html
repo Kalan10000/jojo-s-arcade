@@ -115,7 +115,7 @@
         const frontZ = lastRowZ + 4.0;
         const backWallZ = -1.0;
         const secretRoomZ = -5.0;
-        const hallLength = frontZ - backWallZ; // Exact length so main floor ends right at backWallZ
+        const hallLength = frontZ - backWallZ;
         const hallCenterZ = (frontZ + backWallZ) / 2;
 
         let scene, camera, renderer;
@@ -244,8 +244,9 @@
                 scene.add(pLight);
             }
 
-            const secretRoomLight = new THREE.PointLight(0xffaa44, 1.2, 9);
-            secretRoomLight.position.set(-6.5, 3.2, secretRoomZ);
+            // Strictly position & bound secret room light so zero light leaks onto main hall floor
+            const secretRoomLight = new THREE.PointLight(0xffaa44, 1.5, 4.5);
+            secretRoomLight.position.set(-6.5, 3.0, -6.5);
             scene.add(secretRoomLight);
         }
 
@@ -306,18 +307,18 @@
             frontWallTop.position.set(0, 3.95, frontZ);
             scene.add(frontWallTop);
 
-            // Solid back wall covering right and center (from x = -2.0 to 7.5)
+            // Solid back wall covering right and center (x = -2.0 to 7.5)
             const backWallSolid = new THREE.Mesh(new THREE.BoxGeometry(9.5, 5.2, 0.3), wallMat);
             backWallSolid.position.set(2.75, 2.6, backWallZ);
             scene.add(backWallSolid);
 
             // Fake clip-through wall panel covering the left passage (x = -7.5 to -2.0)
-            // Visually hides secret room, but you can walk right through it!
             const fakeClipWall = new THREE.Mesh(new THREE.BoxGeometry(5.5, 5.2, 0.3), wallMat);
             fakeClipWall.position.set(-4.75, 2.6, backWallZ);
             scene.add(fakeClipWall);
 
-            createCleanSign(1.5, 3.8, backWallZ + 0.18, Math.PI);
+            // Back wall Sign "JOJO'S ARCADE" centered on the back wall, facing forward (+Z)
+            createCleanSign(2.75, 3.8, backWallZ + 0.18, 0);
         }
 
         function setupExitDoor() {
@@ -359,6 +360,7 @@
 
             doorGroup.add(pivotGroup);
 
+            // EXIT Sign placed above entrance door facing into the arcade (-Z)
             const exitCanvas = document.createElement('canvas');
             exitCanvas.width = 512;
             exitCanvas.height = 128;
@@ -379,12 +381,12 @@
                 new THREE.PlaneGeometry(1.6, 0.45),
                 new THREE.MeshBasicMaterial({ map: exitTex })
             );
-            signMesh.position.set(0, 2.9, 0.01);
+            signMesh.position.set(0, 2.9, -0.18);
             signMesh.rotation.y = Math.PI;
             doorGroup.add(signMesh);
 
             const exitLight = new THREE.PointLight(0xff0055, 1.4, 6);
-            exitLight.position.set(0, 2.7, 0.4);
+            exitLight.position.set(0, 2.7, -0.4);
             doorGroup.add(exitLight);
 
             scene.add(doorGroup);
@@ -402,7 +404,6 @@
             woodTex.repeat.set(3, 3);
 
             const secretFloorMat = new THREE.MeshStandardMaterial({ map: woodTex, roughness: 0.5 });
-            // Slightly offset secret floor height (-0.002) to guarantee zero Z-fighting at floor boundary
             const secretFloor = new THREE.Mesh(new THREE.PlaneGeometry(9, 7.98), secretFloorMat);
             secretFloor.rotation.x = -Math.PI / 2;
             secretFloor.position.set(-6.5, -0.002, secretRoomZ - 0.01);
@@ -454,13 +455,17 @@
             ctx.fillStyle = '#080512';
             ctx.fillRect(0, 0, 1024, 256);
 
+            ctx.strokeStyle = '#ff007f';
+            ctx.lineWidth = 8;
+            ctx.strokeRect(8, 8, 1008, 240);
+
             ctx.fillStyle = '#ffffff';
-            ctx.font = '900 76px "Orbitron", sans-serif';
+            ctx.font = '900 72px "Orbitron", sans-serif';
             ctx.textAlign = 'center';
             ctx.fillText("JOJO'S ARCADE", 512, 110);
 
             ctx.fillStyle = '#ff007f';
-            ctx.font = '700 30px "Orbitron", sans-serif';
+            ctx.font = '700 28px "Orbitron", sans-serif';
             ctx.fillText('SELECT A CABINET TO LAUNCH PORTAL', 512, 185);
 
             const signTex = new THREE.CanvasTexture(canvas);
@@ -933,7 +938,7 @@
             // Main Hall bounds
             const inMainHall = (x >= -7.5 + playerRadius && x <= 7.5 - playerRadius && z >= backWallZ + playerRadius && z <= frontZ - playerRadius);
 
-            // Secret Room & Corridor bounds (includes clipping directly through the fake wall passage around backWallZ)
+            // Secret Room & Corridor bounds (includes clipping through fake wall around backWallZ)
             const inSecretArea = (x >= -11.0 + playerRadius && x <= -2.0 - playerRadius && z >= -9.0 + playerRadius && z <= backWallZ + playerRadius);
 
             return inMainHall || inSecretArea;
