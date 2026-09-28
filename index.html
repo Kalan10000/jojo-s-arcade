@@ -47,6 +47,12 @@
       text-transform: uppercase;
     }
 
+    .controls-hint {
+      font-size: 0.8rem;
+      color: #aaa;
+      margin-top: 6px;
+    }
+
     .btn {
       background: #00ffcc;
       color: #000;
@@ -143,6 +149,7 @@
     <div id="auth-status">Checking auth...</div>
     <button id="login-btn" class="btn" onclick="promptLogin()">Log In</button>
     <button id="logout-btn" class="btn" onclick="logoutUser()" style="display:none;">Log Out</button>
+    <div class="controls-hint">Controls: Click Cabinet to Play | Click Exit Door or Press 'E' to Leave</div>
   </div>
 
   <!-- Cabinet Interaction Panel -->
@@ -176,9 +183,15 @@
 
     let scene, camera, renderer;
     let cabinets = [];
+    let doorPivot, doorMesh, exitSignMesh;
     let raycaster = new THREE.Raycaster();
     let mouse = new THREE.Vector2();
     let selectedCabinet = null;
+
+    // Door Animation State
+    let isDoorOpening = false;
+    let doorAngle = 0;
+    const targetDoorAngle = -Math.PI / 2; // Opens 90 degrees inward
 
     function init3DArcade() {
       const container = document.getElementById('webgl-canvas');
@@ -208,21 +221,90 @@
         });
         const mesh = new THREE.Mesh(geometry, material);
         mesh.position.set((index - 0.5) * 3, 0, 0);
-        mesh.userData = data;
+        mesh.userData = { ...data, isCabinet: true };
         
         scene.add(mesh);
         cabinets.push(mesh);
       });
 
+      // Build Exit Door
+      createExitDoor();
+
       window.addEventListener('resize', onWindowResize);
-      window.addEventListener('click', onCabinetClick);
+      window.addEventListener('click', onCanvasClick);
+      window.addEventListener('keydown', onKeyDown);
 
       animate();
     }
 
+    function createExitDoor() {
+      const doorX = 4.5;
+      const doorY = 0;
+      const doorZ = -2;
+
+      // Door Frame
+      const frameGeo = new THREE.BoxGeometry(2.2, 4.2, 0.2);
+      const frameMat = new THREE.MeshPhongMaterial({ color: 0x222222 });
+      const frameMesh = new THREE.Mesh(frameGeo, frameMat);
+      frameMesh.position.set(doorX, doorY + 0.5, doorZ);
+      scene.add(frameMesh);
+
+      // Hinge Pivot Group (placed at left edge of door frame)
+      doorPivot = new THREE.Group();
+      doorPivot.position.set(doorX - 1, doorY + 0.5, doorZ);
+      scene.add(doorPivot);
+
+      // Door Panel (offset relative to pivot)
+      const doorGeo = new THREE.BoxGeometry(2, 4, 0.1);
+      const doorMat = new THREE.MeshPhongMaterial({ color: 0xff0055, emissive: 0x330011 });
+      doorMesh = new THREE.Mesh(doorGeo, doorMat);
+      doorMesh.position.set(1, 0, 0); // Shift center so hinge is on the left
+      doorMesh.userData = { isDoor: true };
+      doorPivot.add(doorMesh);
+
+      // Exit Sign above frame
+      const signGeo = new THREE.BoxGeometry(1.5, 0.6, 0.2);
+      const signMat = new THREE.MeshPhongMaterial({ color: 0xff0000, emissive: 0xff0000 });
+      exitSignMesh = new THREE.Mesh(signGeo, signMat);
+      exitSignMesh.position.set(doorX, doorY + 3, doorZ + 0.1);
+      scene.add(exitSignMesh);
+    }
+
+    function triggerExitDoor() {
+      if (isDoorOpening) return;
+      isDoorOpening = true;
+
+      // Smoothly animate door opening then close tab
+      setTimeout(() => {
+        closeTab();
+      }, 1200);
+    }
+
+    function closeTab() {
+      window.close();
+      
+      // Fallback display if browser blocks script window closure
+      setTimeout(() => {
+        document.body.innerHTML = `
+          <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; background:#050505; color:#00ffcc; font-family:monospace; text-align:center;">
+            <h1>ARCADE CLOSED</h1>
+            <p style="margin-top:15px; color:#fff;">You exited the Arcade. You can safely close this browser tab.</p>
+          </div>
+        `;
+      }, 300);
+    }
+
     function animate() {
       requestAnimationFrame(animate);
+
+      // Cabinet idle rotation
       cabinets.forEach(cab => { cab.rotation.y += 0.005; });
+
+      // Handle Door opening animation
+      if (isDoorOpening && doorPivot.rotation.y > targetDoorAngle) {
+        doorPivot.rotation.y -= 0.05;
+      }
+
       renderer.render(scene, camera);
     }
 
@@ -232,16 +314,36 @@
       renderer.setSize(window.innerWidth, window.innerHeight);
     }
 
-    function onCabinetClick(event) {
+    function onCanvasClick(event) {
+      // Ignore click if game iframe modal is open
+      if (document.getElementById('game-modal').style.display === 'flex') return;
+
       mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
       mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
       raycaster.setFromCamera(mouse, camera);
-      const intersects = raycaster.intersectObjects(cabinets);
+      
+      const interactables = [...cabinets, doorMesh];
+      const intersects = raycaster.intersectObjects(interactables);
 
       if (intersects.length > 0) {
-        selectedCabinet = intersects[0].object.userData;
-        openPanel(selectedCabinet);
+        const clickedObj = intersects[0].object;
+
+        if (clickedObj.userData.isCabinet) {
+          selectedCabinet = clickedObj.userData;
+          openPanel(selectedCabinet);
+        } else if (clickedObj.userData.isDoor) {
+          triggerExitDoor();
+        }
+      }
+    }
+
+    function onKeyDown(event) {
+      // Press 'E' or 'e' to trigger the Exit Door
+      if (event.key === 'e' || event.key === 'E') {
+        if (document.getElementById('game-modal').style.display !== 'flex') {
+          triggerExitDoor();
+        }
       }
     }
 
