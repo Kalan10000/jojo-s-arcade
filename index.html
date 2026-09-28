@@ -1,1240 +1,292 @@
 <!DOCTYPE html>
-<html lang="en" class="h-full w-full overflow-hidden">
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JOJO'S ARCADE</title>
-    
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Orbitron:wght@600;900&family=Press+Start+2P&display=swap" rel="stylesheet">
-    
-    <!-- FontAwesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- Three.js 3D Engine -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3D Arcade Hub</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
-    <!-- Arcade Auth Manager -->
-    <script src="auth.js"></script>
+    body {
+      overflow: hidden;
+      font-family: 'Courier New', Courier, monospace;
+      background-color: #050505;
+      color: #fff;
+    }
 
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #040208;
-            color: #ffffff;
-            user-select: none;
-        }
+    #webgl-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 1;
+    }
 
-        .font-orbitron { font-family: 'Orbitron', sans-serif; }
-        .font-pixel { font-family: 'Press Start 2P', monospace; }
+    /* Top HUD / Auth Overlay */
+    #hud {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      z-index: 10;
+      background: rgba(0, 0, 0, 0.85);
+      border: 2px solid #00ffcc;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 0 15px rgba(0, 255, 204, 0.4);
+    }
 
-        .glass-panel {
-            background: rgba(10, 8, 20, 0.92);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.12);
-        }
+    #hud h1 {
+      font-size: 1.2rem;
+      color: #00ffcc;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+    }
 
-        @keyframes reticleLock {
-            0% { transform: translate(-50%, -50%) scale(1); border-color: rgba(0, 240, 255, 0.8); }
-            50% { transform: translate(-50%, -50%) scale(1.3); border-color: rgba(255, 0, 127, 1); }
-            100% { transform: translate(-50%, -50%) scale(1); border-color: rgba(0, 240, 255, 0.8); }
-        }
+    .btn {
+      background: #00ffcc;
+      color: #000;
+      border: none;
+      padding: 6px 12px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 8px;
+      border-radius: 4px;
+    }
 
-        .reticle-locked {
-            animation: reticleLock 0.8s infinite ease-in-out;
-            background-color: rgba(0, 240, 255, 0.6) !important;
-        }
-    </style>
+    .btn:hover {
+      background: #ff00ff;
+      color: #fff;
+    }
+
+    /* Cabinet Info Sidebar */
+    #cabinet-panel {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      z-index: 10;
+      background: rgba(0, 0, 0, 0.9);
+      border: 2px solid #ff00ff;
+      padding: 20px;
+      border-radius: 8px;
+      display: none;
+      width: 300px;
+      box-shadow: 0 0 15px rgba(255, 0, 255, 0.4);
+    }
+
+    #cabinet-panel h2 {
+      color: #ff00ff;
+      margin-bottom: 10px;
+    }
+
+    /* Embedded Game Iframe Overlay */
+    #game-modal {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 100;
+      background: rgba(0, 0, 0, 0.95);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #game-modal-header {
+      width: 90%;
+      max-width: 1000px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    #game-modal-title {
+      color: #00ffcc;
+      font-size: 1.5rem;
+    }
+
+    #close-game-btn {
+      background: #ff0055;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      font-weight: bold;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+
+    #game-iframe {
+      width: 90%;
+      height: 80vh;
+      max-width: 1000px;
+      border: 3px solid #00ffcc;
+      border-radius: 8px;
+      box-shadow: 0 0 30px rgba(0, 255, 204, 0.3);
+      background: #000;
+    }
+  </style>
 </head>
-<body class="h-full w-full relative overflow-hidden bg-black select-none">
+<body>
 
-    <!-- 3D WebGL Canvas Container -->
-    <div id="canvas-container" class="absolute inset-0 w-full h-full z-0 cursor-crosshair"></div>
+  <canvas id="webgl-canvas"></canvas>
 
-    <!-- FPS Reticle -->
-    <div id="crosshair" class="pointer-events-none fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 w-3 h-3 rounded-full border border-cyan-400 bg-cyan-400/20 transition-all duration-150"></div>
+  <!-- HUD Header -->
+  <div id="hud">
+    <h1>Arcade Hub</h1>
+    <div id="auth-status">Checking auth...</div>
+    <button id="login-btn" class="btn" onclick="promptLogin()">Log In</button>
+    <button id="logout-btn" class="btn" onclick="logoutUser()" style="display:none;">Log Out</button>
+  </div>
 
-    <!-- Minimal Instruction Banner -->
-    <div id="click-hint-banner" class="fixed top-5 left-1/2 -translate-x-1/2 z-30 pointer-events-none transition-opacity duration-500">
-        <div class="glass-panel px-5 py-2 rounded-xl border border-slate-700 shadow-lg flex items-center space-x-3 text-xs font-orbitron">
-            <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
-            <span class="text-cyan-300 font-bold">CLICK SCENE TO CONTROL</span>
-            <span class="text-slate-600">|</span>
-            <span class="text-slate-300"><i class="fa-solid fa-keyboard mr-1"></i> WASD to walk</span>
-            <span class="text-slate-600">|</span>
-            <span id="user-status-text" class="text-pink-400 font-bold">NOT LOGGED IN</span>
-        </div>
+  <!-- Cabinet Interaction Panel -->
+  <div id="cabinet-panel">
+    <h2 id="cabinet-title">Cabinet Name</h2>
+    <p>High Score: <span id="cabinet-high-score">0</span></p>
+    <br>
+    <button id="play-btn" class="btn">Play Game</button>
+    <button class="btn" style="background:#666; color:#fff;" onclick="closePanel()">Cancel</button>
+  </div>
+
+  <!-- Game Iframe Screen -->
+  <div id="game-modal">
+    <div id="game-modal-header">
+      <span id="game-modal-title">Playing Arcade Game</span>
+      <button id="close-game-btn" onclick="closeGameModal()">Exit Cabinet</button>
     </div>
-
-    <!-- TARGET CABINET HUD DISPLAY -->
-    <div id="hud-prompt" class="pointer-events-none fixed top-1/2 left-1/2 -translate-x-1/2 translate-y-8 z-30 opacity-0 transition-all duration-200 transform scale-95 glass-panel px-6 py-3.5 rounded-2xl border border-cyan-500/50 shadow-2xl text-center">
-        <div class="flex items-center justify-center space-x-2 mb-1">
-            <span id="hud-category" class="px-2.5 py-0.5 rounded-full text-[10px] font-orbitron uppercase tracking-wider bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">GENRE</span>
-        </div>
-        <h3 id="hud-title" class="font-orbitron font-extrabold text-lg md:text-xl text-white">GAME TITLE</h3>
-        <p id="hud-url" class="text-xs font-mono text-cyan-300/80 truncate max-w-xs mb-2.5">https://example.com</p>
-        <div id="hud-button-badge" class="inline-flex items-center space-x-2 bg-pink-600/40 px-3.5 py-1 rounded-lg border border-pink-500/50 text-pink-200 text-[11px] font-orbitron">
-            <i class="fa-solid fa-arrow-pointer text-xs"></i>
-            <span id="hud-action-text">CLICK OR PRESS [E] TO LAUNCH</span>
-        </div>
-    </div>
-
-    <!-- CONNECTIONS & HIGH SCORES MODAL OVERLAY -->
-    <div id="auth-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md opacity-0 pointer-events-none transition-opacity duration-300">
-        <div class="glass-panel w-full max-w-md p-6 rounded-2xl border border-cyan-500/40 shadow-2xl relative">
-            <button onclick="closeAuthModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white text-lg">
-                <i class="fa-solid fa-xmark"></i>
-            </button>
-
-            <!-- Navigation Tabs -->
-            <div class="flex border-b border-slate-700 mb-5 font-orbitron text-xs">
-                <button id="tab-btn-login" onclick="switchAuthTab('login')" class="flex-1 py-2 text-center text-cyan-400 border-b-2 border-cyan-400 font-bold">LOGIN</button>
-                <button id="tab-btn-register" onclick="switchAuthTab('register')" class="flex-1 py-2 text-center text-slate-400 hover:text-white">REGISTER</button>
-                <button id="tab-btn-scores" onclick="switchAuthTab('scores')" class="flex-1 py-2 text-center text-slate-400 hover:text-white">HIGH SCORES</button>
-            </div>
-
-            <!-- Login View -->
-            <div id="view-login" class="space-y-4">
-                <h2 class="font-orbitron font-extrabold text-lg text-white mb-1"><i class="fa-solid fa-right-to-bracket text-cyan-400 mr-2"></i>USER LOGIN</h2>
-                <div id="login-error" class="hidden text-xs text-pink-400 bg-pink-950/40 p-2.5 rounded-lg border border-pink-800/50"></div>
-                <div>
-                    <label class="block text-[11px] font-orbitron text-slate-300 mb-1">USERNAME</label>
-                    <input type="text" id="login-username" class="w-full bg-slate-900/80 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-400">
-                </div>
-                <div>
-                    <label class="block text-[11px] font-orbitron text-slate-300 mb-1">PASSWORD</label>
-                    <input type="password" id="login-password" class="w-full bg-slate-900/80 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-400">
-                </div>
-                <button onclick="handleLogin()" class="w-full py-2.5 bg-cyan-600 hover:bg-cyan-500 font-orbitron font-bold text-xs rounded-lg transition text-white shadow-lg shadow-cyan-600/30">
-                    CONNECT ACCOUNT
-                </button>
-            </div>
-
-            <!-- Register View -->
-            <div id="view-register" class="space-y-4 hidden">
-                <h2 class="font-orbitron font-extrabold text-lg text-white mb-1"><i class="fa-solid fa-user-plus text-pink-400 mr-2"></i>CREATE ACCOUNT</h2>
-                <div id="register-error" class="hidden text-xs text-pink-400 bg-pink-950/40 p-2.5 rounded-lg border border-pink-800/50"></div>
-                <div>
-                    <label class="block text-[11px] font-orbitron text-slate-300 mb-1">NEW USERNAME</label>
-                    <input type="text" id="reg-username" class="w-full bg-slate-900/80 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pink-500">
-                </div>
-                <div>
-                    <label class="block text-[11px] font-orbitron text-slate-300 mb-1">PASSWORD</label>
-                    <input type="password" id="reg-password" class="w-full bg-slate-900/80 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pink-500">
-                </div>
-                <button onclick="handleRegister()" class="w-full py-2.5 bg-pink-600 hover:bg-pink-500 font-orbitron font-bold text-xs rounded-lg transition text-white shadow-lg shadow-pink-600/30">
-                    REGISTER & CONNECT
-                </button>
-            </div>
-
-            <!-- High Scores View -->
-            <div id="view-scores" class="space-y-4 hidden">
-                <div class="flex justify-between items-center mb-2">
-                    <h2 class="font-orbitron font-extrabold text-lg text-amber-400"><i class="fa-solid fa-trophy mr-2"></i>YOUR HIGH SCORES</h2>
-                    <button onclick="handleLogout()" id="logout-btn" class="hidden text-[10px] font-orbitron px-2 py-1 bg-red-900/40 border border-red-700 hover:bg-red-800 text-red-300 rounded">LOGOUT</button>
-                </div>
-                <div id="high-scores-list" class="space-y-2 max-h-60 overflow-y-auto text-xs font-mono">
-                    <!-- Populated dynamically -->
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Audio Synth Control Button -->
-    <div class="fixed bottom-5 right-5 z-30">
-        <button id="btn-audio" onclick="toggleAudio()" class="px-4 py-2.5 rounded-xl glass-panel text-slate-300 hover:text-cyan-300 border border-slate-700/80 hover:border-cyan-500/60 transition shadow-md flex items-center space-x-2 text-xs font-orbitron">
-            <i id="audio-icon" class="fa-solid fa-volume-xmark text-pink-400 text-sm"></i>
-            <span id="audio-text" class="hidden sm:inline">SYNTH MUSIC [M]</span>
-        </button>
-    </div>
-
-    <script>
-        // Updated Configurations - Cabinet 5 replaced with CONNECTIONS
-        const MAIN_ARCADE_CONFIGS = [
-            { id: 0, title: "LABYRINTHE", category: "3D Labyrinth", url: "https://labyrintheajojo.vercel.app/", color: "#ff0055" },
-            { id: 1, title: "TOUR INFINIE", category: "Tour infinie", url: "https://tourinfinie.vercel.app", color: "#00f3ff" },
-            { id: 2, title: "NEON OVERDRIVE", category: "Neon overdrive", url: "https://neonoverdrive.vercel.app", color: "#39ff14" },
-            { id: 3, title: "SPACIAL MASTER", category: "Spacial master", url: "https://spacialmaster.vercel.app", color: "#bf00ff" },
-            { id: 4, title: "LA JUSTE COULEUR", category: "La juste couleur", url: "https://lajustecouleur.vercel.app", color: "#ffcc00" },
-            { id: 5, title: "CONNECTIONS", category: "Account & Scores", url: "#connections", color: "#ff00aa", isAuth: true }
-        ];
-
-        const SECRET_CABINET_CONFIG = {
-            id: 99,
-            title: "KALAN'S GAMES",
-            category: "VINTAGE CLASSIC",
-            url: "https://kalansgames.vercel.app/",
-            color: "#ffaa00",
-            isSecret: true
-        };
-
-        // Global Engine State
-        let scene, camera, renderer;
-        let arcadeCabinets = [];
-        let raycaster, centerRayVector;
-
-        // Player Controls State
-        let moveForward = false;
-        let moveBackward = false;
-        let moveLeft = false;
-        let moveRight = false;
-        let isPointerLocked = false;
-
-        let pitch = 0;
-        let yaw = 0;
-        const playerPos = new THREE.Vector3(0, 1.13, 12);
-        const playerRadius = 0.33;
-        const walkSpeed = 5.5;
-
-        let targetCabinet = null;
-
-        // Web Audio Synthesizer State
-        let audioCtx = null;
-        let isAudioPlaying = false;
-        let synthTimer = null;
-
-        function generateRealisticWoodCanvas(width = 512, height = 512) {
-            const canvas = document.createElement('canvas');
-            canvas.width = width;
-            canvas.height = height;
-            const ctx = canvas.getContext('2d');
-
-            const grad = ctx.createLinearGradient(0, 0, width, height);
-            grad.addColorStop(0, '#2e1406');
-            grad.addColorStop(0.5, '#1b0a02');
-            grad.addColorStop(1, '#381a08');
-            ctx.fillStyle = grad;
-            ctx.fillRect(0, 0, width, height);
-
-            for (let i = 0; i < 400; i++) {
-                const x = Math.random() * width;
-                const w = Math.random() * 2 + 0.5;
-                const alpha = Math.random() * 0.12 + 0.03;
-                ctx.fillStyle = Math.random() > 0.5 ? `rgba(10, 4, 1, ${alpha})` : `rgba(70, 36, 14, ${alpha})`;
-                ctx.fillRect(x, 0, w, height);
-            }
-
-            ctx.lineWidth = 1.8;
-            for (let g = 0; g < 30; g++) {
-                const startX = (g / 30) * width + (Math.random() * 10 - 5);
-                const alpha = Math.random() * 0.15 + 0.05;
-                ctx.strokeStyle = `rgba(12, 5, 1, ${alpha})`;
-                ctx.beginPath();
-                ctx.moveTo(startX, 0);
-
-                for (let y = 0; y <= height; y += 10) {
-                    const shift = Math.sin(y * 0.01) * 12 + Math.cos(y * 0.02) * 4;
-                    ctx.lineTo(startX + shift, y);
-                }
-                ctx.stroke();
-            }
-
-            return canvas;
-        }
-
-        function init3DScene() {
-            const container = document.getElementById('canvas-container');
-
-            scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x05030a);
-            scene.fog = new THREE.FogExp2(0x05030a, 0.02);
-
-            camera = new THREE.PerspectiveCamera(62, window.innerWidth / window.innerHeight, 0.1, 100);
-            camera.position.copy(playerPos);
-
-            const euler = new THREE.Euler(pitch, yaw, 0, 'YXZ');
-            camera.quaternion.setFromEuler(euler);
-
-            renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.toneMapping = THREE.ACESFilmicToneMapping;
-            renderer.toneMappingExposure = 1.15;
-            container.appendChild(renderer.domElement);
-
-            raycaster = new THREE.Raycaster();
-            centerRayVector = new THREE.Vector2(0, 0);
-
-            setupLighting();
-            setupMainHall();
-            setupSecretRoom();
-
-            buildMainCabinets();
-            buildSecretCabinet();
-
-            setupFPSControls();
-
-            window.addEventListener('resize', onWindowResize);
-            animate();
-        }
-
-        function setupLighting() {
-            const hemiLight = new THREE.HemisphereLight(0x8070a0, 0x201535, 1.35);
-            scene.add(hemiLight);
-
-            const dirLight = new THREE.DirectionalLight(0xfff0e6, 0.85);
-            dirLight.position.set(0, 10, 4);
-            scene.add(dirLight);
-
-            const lightPositions = [12, 4, -4];
-            lightPositions.forEach((zPos, idx) => {
-                const color = idx % 2 === 0 ? 0x00f0ff : 0xff007f;
-                const pLight = new THREE.PointLight(color, 0.75, 12);
-                pLight.position.set(0, 4.8, zPos);
-                scene.add(pLight);
-            });
-
-            const secretRoomLight = new THREE.PointLight(0xffaa44, 1.2, 9);
-            secretRoomLight.position.set(-6.5, 3.2, -18.0);
-            scene.add(secretRoomLight);
-        }
-
-        function setupMainHall() {
-            const floorGeo = new THREE.PlaneGeometry(15, 28);
-
-            const tileCanvas = document.createElement('canvas');
-            tileCanvas.width = 512;
-            tileCanvas.height = 512;
-            const tCtx = tileCanvas.getContext('2d');
-
-            tCtx.fillStyle = '#0a0714';
-            tCtx.fillRect(0, 0, 512, 512);
-            tCtx.strokeStyle = 'rgba(255, 0, 127, 0.22)';
-            tCtx.lineWidth = 3;
-
-            for (let i = 0; i <= 512; i += 64) {
-                tCtx.beginPath(); tCtx.moveTo(i, 0); tCtx.lineTo(i, 512); tCtx.stroke();
-                tCtx.beginPath(); tCtx.moveTo(0, i); tCtx.lineTo(512, i); tCtx.stroke();
-            }
-
-            const floorTex = new THREE.CanvasTexture(tileCanvas);
-            floorTex.wrapS = THREE.RepeatWrapping;
-            floorTex.wrapT = THREE.RepeatWrapping;
-            floorTex.repeat.set(7.5, 14);
-
-            const floorMat = new THREE.MeshStandardMaterial({ map: floorTex, roughness: 0.35, metalness: 0.25 });
-            const floor = new THREE.Mesh(floorGeo, floorMat);
-            floor.rotation.x = -Math.PI / 2;
-            floor.position.set(0, 0, 4);
-            scene.add(floor);
-
-            const ceilingMat = new THREE.MeshStandardMaterial({ color: 0x090612, roughness: 0.8 });
-            const ceiling = new THREE.Mesh(floorGeo, ceilingMat);
-            ceiling.rotation.x = Math.PI / 2;
-            ceiling.position.set(0, 5.2, 4);
-            scene.add(ceiling);
-
-            const wallMat = new THREE.MeshStandardMaterial({ color: 0x0f0b1a, roughness: 0.7 });
-
-            const leftWall = new THREE.Mesh(new THREE.PlaneGeometry(28, 5.2), wallMat);
-            leftWall.position.set(-7.5, 2.6, 4);
-            leftWall.rotation.y = Math.PI / 2;
-            scene.add(leftWall);
-
-            const rightWall = new THREE.Mesh(new THREE.PlaneGeometry(28, 5.2), wallMat);
-            rightWall.position.set(7.5, 2.6, 4);
-            rightWall.rotation.y = -Math.PI / 2;
-            scene.add(rightWall);
-
-            const frontWall = new THREE.Mesh(new THREE.PlaneGeometry(15, 5.2), wallMat);
-            frontWall.position.set(0, 2.6, 18);
-            frontWall.rotation.y = Math.PI;
-            scene.add(frontWall);
-
-            const backRightWall = new THREE.Mesh(new THREE.PlaneGeometry(12, 5.2), wallMat);
-            backRightWall.position.set(1.5, 2.6, -10);
-            scene.add(backRightWall);
-
-            const backLeftWall = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 5.2), wallMat);
-            backLeftWall.position.set(-7.25, 2.6, -10);
-            scene.add(backLeftWall);
-
-            const phaseWall = new THREE.Mesh(new THREE.PlaneGeometry(2.5, 5.2), wallMat);
-            phaseWall.position.set(-5.75, 2.6, -9.99);
-            scene.add(phaseWall);
-
-            createCleanSign(0, 3.8, -9.9, 0);
-        }
-
-        function setupSecretRoom() {
-            const woodCanvas = generateRealisticWoodCanvas(512, 512);
-            const woodTex = new THREE.CanvasTexture(woodCanvas);
-            woodTex.wrapS = THREE.RepeatWrapping;
-            woodTex.wrapT = THREE.RepeatWrapping;
-            woodTex.repeat.set(3, 4);
-
-            const secretFloorMat = new THREE.MeshStandardMaterial({ map: woodTex, roughness: 0.5 });
-            const secretFloor = new THREE.Mesh(new THREE.PlaneGeometry(9, 12), secretFloorMat);
-            secretFloor.rotation.x = -Math.PI / 2;
-            secretFloor.position.set(-6.5, 0, -16);
-            scene.add(secretFloor);
-
-            const secretCeilingMat = new THREE.MeshStandardMaterial({ color: 0x1f1107, roughness: 0.9 });
-            const secretCeiling = new THREE.Mesh(new THREE.PlaneGeometry(9, 12), secretCeilingMat);
-            secretCeiling.rotation.x = Math.PI / 2;
-            secretCeiling.position.set(-6.5, 4.2, -16);
-            scene.add(secretCeiling);
-
-            const paperCanvas = document.createElement('canvas');
-            paperCanvas.width = 256;
-            paperCanvas.height = 256;
-            const pCtx = paperCanvas.getContext('2d');
-            pCtx.fillStyle = '#221107';
-            pCtx.fillRect(0, 0, 256, 256);
-            pCtx.fillStyle = '#180a03';
-            for (let x = 0; x < 256; x += 32) {
-                pCtx.fillRect(x, 0, 16, 256);
-            }
-
-            const paperTex = new THREE.CanvasTexture(paperCanvas);
-            paperTex.wrapS = THREE.RepeatWrapping;
-            paperTex.wrapT = THREE.RepeatWrapping;
-            paperTex.repeat.set(4, 2);
-
-            const secretWallMat = new THREE.MeshStandardMaterial({ map: paperTex, roughness: 0.7 });
-
-            const secretBack = new THREE.Mesh(new THREE.PlaneGeometry(9, 4.2), secretWallMat);
-            secretBack.position.set(-6.5, 2.1, -22);
-            scene.add(secretBack);
-
-            const secretLeft = new THREE.Mesh(new THREE.PlaneGeometry(12, 4.2), secretWallMat);
-            secretLeft.position.set(-11.0, 2.1, -16);
-            secretLeft.rotation.y = Math.PI / 2;
-            scene.add(secretLeft);
-
-            const secretRight = new THREE.Mesh(new THREE.PlaneGeometry(12, 4.2), secretWallMat);
-            secretRight.position.set(-2.0, 2.1, -16);
-            secretRight.rotation.y = -Math.PI / 2;
-            scene.add(secretRight);
-        }
-
-        function createCleanSign(x, y, z, rotY) {
-            const canvas = document.createElement('canvas');
-            canvas.width = 1024;
-            canvas.height = 256;
-            const ctx = canvas.getContext('2d');
-
-            ctx.fillStyle = '#080512';
-            ctx.fillRect(0, 0, 1024, 256);
-
-            ctx.fillStyle = '#ffffff';
-            ctx.font = '900 76px "Orbitron", sans-serif';
-            ctx.textAlign = 'center';
-            ctx.fillText("JOJO'S ARCADE", 512, 110);
-
-            ctx.fillStyle = '#ff007f';
-            ctx.font = '700 30px "Orbitron", sans-serif';
-            ctx.fillText('SELECT A CABINET TO LAUNCH PORTAL', 512, 185);
-
-            const signTex = new THREE.CanvasTexture(canvas);
-            const signMat = new THREE.MeshBasicMaterial({ map: signTex, transparent: true });
-            const signMesh = new THREE.Mesh(new THREE.PlaneGeometry(10, 2.5), signMat);
-            signMesh.position.set(x, y, z);
-            signMesh.rotation.y = rotY;
-            scene.add(signMesh);
-        }
-
-        function buildMainCabinets() {
-            const zPositions = [4.0, 0.0, -4.0];
-
-            MAIN_ARCADE_CONFIGS.forEach((data, index) => {
-                const isLeft = index % 2 === 0;
-                const row = Math.floor(index / 2);
-
-                const posX = isLeft ? -5.5 : 5.5;
-                const posZ = zPositions[row];
-                const rotY = isLeft ? Math.PI / 2.4 : -Math.PI / 2.4;
-
-                const cabinetData = createRealisticCabinetMesh(data, false);
-                const group = cabinetData.group;
-
-                group.position.set(posX, 0, posZ);
-                group.rotation.y = rotY;
-                scene.add(group);
-
-                arcadeCabinets.push({
-                    id: data.id,
-                    config: data,
-                    group: group,
-                    screenMesh: cabinetData.screenMesh,
-                    screenCanvas: cabinetData.screenCanvas,
-                    screenCtx: cabinetData.screenCtx,
-                    minX: posX - 0.55,
-                    maxX: posX + 0.55,
-                    minZ: posZ - 0.55,
-                    maxZ: posZ + 0.55
-                });
-            });
-        }
-
-        function buildSecretCabinet() {
-            const posX = -6.5;
-            const posZ = -19.5;
-
-            const cabinetData = createRealisticCabinetMesh(SECRET_CABINET_CONFIG, true);
-            const group = cabinetData.group;
-
-            group.position.set(posX, 0, posZ);
-            group.rotation.y = 0;
-            scene.add(group);
-
-            arcadeCabinets.push({
-                id: SECRET_CABINET_CONFIG.id,
-                config: SECRET_CABINET_CONFIG,
-                group: group,
-                screenMesh: cabinetData.screenMesh,
-                screenCanvas: cabinetData.screenCanvas,
-                screenCtx: cabinetData.screenCtx,
-                minX: posX - 0.55,
-                maxX: posX + 0.55,
-                minZ: posZ - 0.55,
-                maxZ: posZ + 0.55
-            });
-        }
-
-        function createRealisticCabinetMesh(data, isWood) {
-            const group = new THREE.Group();
-            const mainColorHex = parseInt(data.color.replace('#', '0x'));
-
-            let bodyMat;
-            if (isWood) {
-                const woodCanvas = generateRealisticWoodCanvas(512, 512);
-                const woodTexture = new THREE.CanvasTexture(woodCanvas);
-                bodyMat = new THREE.MeshStandardMaterial({ map: woodTexture, roughness: 0.45, metalness: 0.1 });
-            } else {
-                bodyMat = new THREE.MeshStandardMaterial({ color: 0x201a30, roughness: 0.35, metalness: 0.2 });
-            }
-
-            const trimMat = new THREE.MeshStandardMaterial({
-                color: isWood ? 0x2d1d11 : mainColorHex,
-                roughness: 0.2,
-                metalness: 0.8,
-                emissive: isWood ? 0x000000 : mainColorHex,
-                emissiveIntensity: isWood ? 0.0 : 0.25
-            });
-
-            // 1. Main Cabinet Body
-            const bodyMesh = new THREE.Mesh(new THREE.BoxGeometry(0.85, 2.05, 0.80), bodyMat);
-            bodyMesh.position.y = 1.025;
-            group.add(bodyMesh);
-
-            // 2. T-Molding Edge Trim
-            const trimL = new THREE.Mesh(new THREE.BoxGeometry(0.03, 2.06, 0.03), trimMat);
-            trimL.position.set(-0.43, 1.025, 0.405);
-            group.add(trimL);
-
-            const trimR = new THREE.Mesh(new THREE.BoxGeometry(0.03, 2.06, 0.03), trimMat);
-            trimR.position.set(0.43, 1.025, 0.405);
-            group.add(trimR);
-
-            // 3. Recessed CRT Screen Frame & Canvas
-            const screenFrame = new THREE.Mesh(
-                new THREE.BoxGeometry(0.72, 0.58, 0.15),
-                new THREE.MeshStandardMaterial({ color: 0x110e1a, roughness: 0.5 })
-            );
-            screenFrame.position.set(0, 1.35, 0.35);
-            screenFrame.rotation.x = -0.22;
-            group.add(screenFrame);
-
-            const screenCanvas = document.createElement('canvas');
-            screenCanvas.width = 512;
-            screenCanvas.height = 384;
-            const screenCtx = screenCanvas.getContext('2d');
-
-            const screenTexture = new THREE.CanvasTexture(screenCanvas);
-            const screenMat = new THREE.MeshBasicMaterial({ map: screenTexture });
-
-            const screenMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.68, 0.52), screenMat);
-            screenMesh.position.set(0, 1.35, 0.43);
-            screenMesh.rotation.x = -0.22;
-            group.add(screenMesh);
-
-            screenMesh.userData = { cabinetId: data.id };
-            bodyMesh.userData = { cabinetId: data.id };
-
-            // 4. Marquee Header
-            const marqueeCanvas = document.createElement('canvas');
-            marqueeCanvas.width = 512;
-            marqueeCanvas.height = 128;
-            const mCtx = marqueeCanvas.getContext('2d');
-
-            if (isWood) {
-                const mGrad = mCtx.createLinearGradient(0, 0, 0, 128);
-                mGrad.addColorStop(0, '#ffe0a0');
-                mGrad.addColorStop(0.5, '#ffaa00');
-                mGrad.addColorStop(1, '#cc6600');
-                mCtx.fillStyle = mGrad;
-                mCtx.fillRect(0, 0, 512, 128);
-
-                mCtx.strokeStyle = '#221100';
-                mCtx.lineWidth = 10;
-                mCtx.strokeRect(5, 5, 502, 118);
-
-                mCtx.fillStyle = '#110500';
-                mCtx.font = '30px "Press Start 2P"';
-                mCtx.textAlign = 'center';
-                mCtx.fillText("KALAN'S", 256, 54);
-                mCtx.fillStyle = '#ffffff';
-                mCtx.font = '24px "Press Start 2P"';
-                mCtx.fillText("GAMES", 256, 100);
-            } else {
-                mCtx.fillStyle = '#0a0514';
-                mCtx.fillRect(0, 0, 512, 128);
-                mCtx.strokeStyle = data.color;
-                mCtx.lineWidth = 8;
-                mCtx.strokeRect(4, 4, 504, 120);
-
-                mCtx.fillStyle = '#ffffff';
-                mCtx.font = 'bold 38px "Orbitron", sans-serif';
-                mCtx.textAlign = 'center';
-                mCtx.fillText(data.title, 256, 76);
-            }
-
-            const marqueeTexture = new THREE.CanvasTexture(marqueeCanvas);
-            const marqueeMesh = new THREE.Mesh(
-                new THREE.BoxGeometry(0.81, 0.28, 0.16),
-                new THREE.MeshBasicMaterial({ map: marqueeTexture })
-            );
-            marqueeMesh.position.set(0, 1.84, 0.38);
-            group.add(marqueeMesh);
-
-            // 5. Control Deck
-            const deck = new THREE.Mesh(new THREE.BoxGeometry(0.81, 0.10, 0.38), bodyMat);
-            deck.position.set(0, 0.95, 0.44);
-            deck.rotation.x = 0.15;
-            group.add(deck);
-
-            const stickGroup = new THREE.Group();
-            
-            const washer = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.01, 16), new THREE.MeshStandardMaterial({ color: 0x111111 }));
-            washer.position.y = 0.005;
-            stickGroup.add(washer);
-
-            const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.10, 16), new THREE.MeshStandardMaterial({ color: 0xdddddd, metalness: 0.95, roughness: 0.1 }));
-            shaft.position.y = 0.055;
-            stickGroup.add(shaft);
-
-            const ball = new THREE.Mesh(new THREE.SphereGeometry(0.035, 16, 16), new THREE.MeshStandardMaterial({
-                color: isWood ? 0xcc1100 : mainColorHex,
-                roughness: 0.2
-            }));
-            ball.position.y = 0.105;
-            stickGroup.add(ball);
-
-            stickGroup.position.set(-0.22, 1.0, 0.44);
-            group.add(stickGroup);
-
-            const buttonColors = [0xdd1100, 0x0088ff, 0xffcc00, 0x00cc44, 0xff00aa, 0xffffff];
-            let bIdx = 0;
-            for (let row = 0; row < 2; row++) {
-                for (let col = 0; col < 3; col++) {
-                    const btn = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.02, 16), new THREE.MeshStandardMaterial({
-                        color: buttonColors[bIdx % buttonColors.length],
-                        roughness: 0.3
-                    }));
-                    btn.position.set(0.04 + col * 0.065, 0.995 + row * 0.01, 0.40 + row * 0.065);
-                    btn.rotation.x = 0.15;
-                    group.add(btn);
-                    bIdx++;
-                }
-            }
-
-            // 6. Coin Door
-            const doorFrame = new THREE.Mesh(
-                new THREE.BoxGeometry(0.40, 0.46, 0.04),
-                new THREE.MeshStandardMaterial({ color: 0x1a1a1a, metalness: 0.8, roughness: 0.3 })
-            );
-            doorFrame.position.set(0, 0.48, 0.41);
-            group.add(doorFrame);
-
-            for (let c = -1; c <= 1; c += 2) {
-                const coinBtn = new THREE.Mesh(
-                    new THREE.BoxGeometry(0.05, 0.04, 0.02),
-                    new THREE.MeshStandardMaterial({ color: 0xee1100, emissive: 0x990000, emissiveIntensity: 0.6 })
-                );
-                coinBtn.position.set(c * 0.10, 0.52, 0.435);
-                group.add(coinBtn);
-            }
-
-            return { group, screenMesh, screenCanvas, screenCtx };
-        }
-
-        function updateScreenTextures(time) {
-            arcadeCabinets.forEach((cab) => {
-                const ctx = cab.screenCtx;
-                const width = 512;
-                const height = 384;
-                const config = cab.config;
-
-                if (config.isSecret) {
-                    renderVintagePixelScreen(ctx, width, height, time, config);
-                } else if (config.isAuth) {
-                    renderConnectionsAuthScreen(ctx, width, height, time, config);
-                } else {
-                    renderArcadeGameScreen(ctx, width, height, time, config);
-                }
-
-                cab.screenMesh.material.map.needsUpdate = true;
-            });
-        }
-
-        function renderConnectionsAuthScreen(ctx, width, height, time, config) {
-            const loggedIn = window.arcadeAuth && window.arcadeAuth.currentUser;
-
-            ctx.fillStyle = '#06030c';
-            ctx.fillRect(0, 0, width, height);
-
-            // Matrix style scanning grid
-            ctx.strokeStyle = '#ff00aa';
-            ctx.lineWidth = 1;
-            ctx.globalAlpha = 0.3;
-            for (let i = 0; i < width; i += 24) {
-                ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, height); ctx.stroke();
-            }
-            for (let j = 0; j < height; j += 24) {
-                ctx.beginPath(); ctx.moveTo(0, j); ctx.lineTo(width, j); ctx.stroke();
-            }
-            ctx.globalAlpha = 1.0;
-
-            // Lock Icon / Shield
-            ctx.fillStyle = loggedIn ? '#00ffaa' : '#ff00aa';
-            ctx.beginPath();
-            ctx.arc(width / 2, height * 0.35, 36, 0, Math.PI * 2);
-            ctx.fill();
-
-            ctx.fillStyle = '#ffffff';
-            ctx.font = '800 28px "Orbitron", sans-serif';
-            ctx.textAlign = 'center';
-            ctx.fillText("CONNECTIONS", width / 2, height * 0.62);
-
-            if (loggedIn) {
-                ctx.fillStyle = '#00ffaa';
-                ctx.font = '600 14px "Orbitron", sans-serif';
-                ctx.fillText(`USER: ${window.arcadeAuth.currentUser.username.toUpperCase()}`, width / 2, height * 0.74);
-                
-                ctx.fillStyle = '#ffffff';
-                ctx.font = 'bold 12px "Orbitron", sans-serif';
-                ctx.fillText("▶ CLICK TO VIEW HIGH SCORES ◀", width / 2, height * 0.88);
-            } else {
-                ctx.fillStyle = '#ff00aa';
-                ctx.font = '600 14px "Orbitron", sans-serif';
-                ctx.fillText("AUTHENTICATION PORTAL", width / 2, height * 0.74);
-
-                const blink = Math.sin(time * 5) > 0;
-                if (blink) {
-                    ctx.fillStyle = '#ffffff';
-                    ctx.font = 'bold 12px "Orbitron", sans-serif';
-                    ctx.fillText("▶ CLICK TO CONNECT ACCOUNT ◀", width / 2, height * 0.88);
-                }
-            }
-
-            // CRT Scanlines
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
-            for (let y = 0; y < height; y += 4) {
-                ctx.fillRect(0, y, width, 2);
-            }
-        }
-
-        function renderArcadeGameScreen(ctx, width, height, time, config) {
-            const themeColor = config.color || '#ff007f';
-
-            ctx.fillStyle = '#05020a';
-            ctx.fillRect(0, 0, width, height);
-
-            ctx.strokeStyle = themeColor;
-            ctx.lineWidth = 1.5;
-            ctx.globalAlpha = 0.4;
-            const horizon = height * 0.5;
-
-            for (let x = -width; x <= width * 2; x += 32) {
-                ctx.beginPath();
-                ctx.moveTo(width / 2, horizon);
-                ctx.lineTo(x, height);
-                ctx.stroke();
-            }
-
-            const gridOffset = (time * 50) % 18;
-            for (let y = horizon; y < height; y += 10) {
-                const drawY = y + gridOffset;
-                if (drawY < height) {
-                    ctx.beginPath();
-                    ctx.moveTo(0, drawY);
-                    ctx.lineTo(width, drawY);
-                    ctx.stroke();
-                }
-            }
-            ctx.globalAlpha = 1.0;
-
-            ctx.strokeStyle = themeColor;
-            ctx.lineWidth = 3;
-            ctx.beginPath();
-            const centerY = height * 0.35;
-            for (let x = 0; x <= width; x += 6) {
-                const wave = Math.sin(x * 0.025 + time * 4) * 20;
-                if (x === 0) ctx.moveTo(x, centerY + wave);
-                else ctx.lineTo(x, centerY + wave);
-            }
-            ctx.stroke();
-
-            ctx.fillStyle = '#ffffff';
-            ctx.font = '800 30px "Orbitron", sans-serif';
-            ctx.textAlign = 'center';
-            ctx.fillText(config.title, width / 2, height * 0.72);
-
-            ctx.fillStyle = themeColor;
-            ctx.font = '600 14px "Orbitron", sans-serif';
-            ctx.fillText(config.category.toUpperCase(), width / 2, height * 0.81);
-
-            const blink = Math.sin(time * 5) > 0;
-            if (blink) {
-                ctx.fillStyle = '#ffffff';
-                ctx.font = 'bold 12px "Orbitron", sans-serif';
-                ctx.fillText("▶ CLICK TO LAUNCH PORTAL ◀", width / 2, height * 0.92);
-            }
-
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
-            for (let y = 0; y < height; y += 4) {
-                ctx.fillRect(0, y, width, 2);
-            }
-        }
-
-        function renderVintagePixelScreen(ctx, width, height, time, config) {
-            ctx.fillStyle = '#120a02';
-            ctx.fillRect(0, 0, width, height);
-
-            ctx.fillStyle = '#ffaa00';
-            for (let i = 0; i < 18; i++) {
-                const px = (i * 35 + Math.floor(time * 30)) % width;
-                const py = (i * 18) % (height * 0.55);
-                ctx.fillRect(px, py, 6, 6);
-            }
-
-            const shipX = width / 2 + Math.sin(time * 2) * 100;
-            const shipY = height * 0.52;
-
-            ctx.fillStyle = '#ff4400';
-            ctx.fillRect(shipX - 16, shipY, 32, 10);
-            ctx.fillRect(shipX - 6, shipY - 10, 12, 10);
-
-            if (Math.floor(time * 6) % 2 === 0) {
-                ctx.fillStyle = '#ffff00';
-                ctx.fillRect(shipX - 10, shipY - 28, 4, 14);
-                ctx.fillRect(shipX + 6, shipY - 28, 4, 14);
-            }
-
-            ctx.fillStyle = '#ffaa00';
-            ctx.font = '20px "Press Start 2P"';
-            ctx.textAlign = 'center';
-            ctx.fillText("KALAN'S GAMES", width / 2, height * 0.76);
-
-            const blink = Math.sin(time * 4) > 0;
-            if (blink) {
-                ctx.fillStyle = '#ffffff';
-                ctx.font = '12px "Press Start 2P"';
-                ctx.fillText("INSERT COIN", width / 2, height * 0.88);
-            }
-
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
-            for (let y = 0; y < height; y += 4) {
-                ctx.fillRect(0, y, width, 2);
-            }
-        }
-
-        function initAudio() {
-            if (audioCtx) return;
-            const AudioContext = window.AudioContext || window.webkitAudioContext;
-            audioCtx = new AudioContext();
-        }
-
-        function playSynthBeep(freq = 440, duration = 0.1, type = 'square', volume = 0.08) {
-            if (!audioCtx || audioCtx.state === 'suspended') return;
-            try {
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                osc.type = type;
-                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-                gain.gain.setValueAtTime(volume, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-                osc.start();
-                osc.stop(audioCtx.currentTime + duration);
-            } catch (e) {}
-        }
-
-        function toggleAudio() {
-            initAudio();
-            if (audioCtx.state === 'suspended') audioCtx.resume();
-
-            isAudioPlaying = !isAudioPlaying;
-            const btn = document.getElementById('btn-audio');
-            const icon = document.getElementById('audio-icon');
-
-            if (isAudioPlaying) {
-                btn.classList.add('border-cyan-500', 'text-cyan-300');
-                icon.className = 'fa-solid fa-volume-high text-cyan-400 animate-pulse';
-                startSynthTrack();
-            } else {
-                btn.classList.remove('border-cyan-500', 'text-cyan-300');
-                icon.className = 'fa-solid fa-volume-xmark text-pink-400';
-                stopSynthTrack();
-            }
-        }
-
-        function startSynthTrack() {
-            if (!audioCtx) return;
-            const notes = [110, 110, 130.81, 110, 146.83, 130.81, 98, 110];
-            let step = 0;
-            
-            synthTimer = setInterval(() => {
-                if (!isAudioPlaying) return;
-                playSynthBeep(notes[step % notes.length], 0.12, 'sawtooth', 0.025);
-                step++;
-            }, 180);
-        }
-
-        function stopSynthTrack() {
-            if (synthTimer) clearInterval(synthTimer);
-        }
-
-        function setupFPSControls() {
-            const hintBanner = document.getElementById('click-hint-banner');
-
-            document.addEventListener('click', (e) => {
-                if (e.target.closest('#btn-audio') || e.target.closest('#auth-modal')) return;
-
-                if (!isPointerLocked) {
-                    document.body.requestPointerLock();
-                    initAudio();
-                    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
-                } else {
-                    launchTargetPortal();
-                }
-            });
-
-            document.addEventListener('pointerlockchange', () => {
-                if (document.pointerLockElement === document.body) {
-                    isPointerLocked = true;
-                    hintBanner.style.opacity = '0';
-                } else {
-                    isPointerLocked = false;
-                    hintBanner.style.opacity = '1';
-                }
-            });
-
-            document.addEventListener('mousemove', (e) => {
-                if (!isPointerLocked) return;
-
-                const sensitivity = 0.0022;
-                yaw -= e.movementX * sensitivity;
-                pitch -= e.movementY * sensitivity;
-
-                pitch = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, pitch));
-            });
-
-            document.addEventListener('keydown', (e) => {
-                switch (e.code) {
-                    case 'KeyW': case 'ArrowUp': moveForward = true; break;
-                    case 'KeyS': case 'ArrowDown': moveBackward = true; break;
-                    case 'KeyA': case 'ArrowLeft': moveLeft = true; break;
-                    case 'KeyD': case 'ArrowRight': moveRight = true; break;
-                    case 'KeyM': toggleAudio(); break;
-                    case 'KeyE': launchTargetPortal(); break;
-                }
-            });
-
-            document.addEventListener('keyup', (e) => {
-                switch (e.code) {
-                    case 'KeyW': case 'ArrowUp': moveForward = false; break;
-                    case 'KeyS': case 'ArrowDown': moveBackward = false; break;
-                    case 'KeyA': case 'ArrowLeft': moveLeft = false; break;
-                    case 'KeyD': case 'ArrowRight': moveRight = false; break;
-                }
-            });
-        }
-
-        function updatePlayerMovement(delta) {
-            if (!isPointerLocked) return;
-
-            const moveDir = new THREE.Vector3();
-            const front = new THREE.Vector3(-Math.sin(yaw), 0, -Math.cos(yaw)).normalize();
-            const right = new THREE.Vector3(Math.cos(yaw), 0, -Math.sin(yaw)).normalize();
-
-            if (moveForward) moveDir.add(front);
-            if (moveBackward) moveDir.sub(front);
-            if (moveRight) moveDir.add(right);
-            if (moveLeft) moveDir.sub(right);
-
-            if (moveDir.lengthSq() > 0) {
-                moveDir.normalize();
-
-                const nextX = playerPos.x + moveDir.x * walkSpeed * delta;
-                const nextZ = playerPos.z + moveDir.z * walkSpeed * delta;
-
-                let validX = nextX;
-                let validZ = nextZ;
-
-                // Room Boundary Collisions
-                if (validZ < -9.5) {
-                    if (validX < -11.0 + playerRadius) validX = -11.0 + playerRadius;
-                    if (validX > -2.0 - playerRadius) validX = -2.0 - playerRadius;
-                    if (validZ < -22.0 + playerRadius) validZ = -22.0 + playerRadius;
-                } else {
-                    if (validX < -7.5 + playerRadius) validX = -7.5 + playerRadius;
-                    if (validX > 7.5 - playerRadius) validX = 7.5 - playerRadius;
-                    if (validZ > 18.0 - playerRadius) validZ = 18.0 - playerRadius;
-
-                    const isFacingPortal = (validX >= -7.0 && validX <= -4.5);
-                    if (!isFacingPortal && validZ < -10.0 + playerRadius) {
-                        validZ = -10.0 + playerRadius;
-                    }
-                }
-
-                // Cabinet Collisions (Allows walking behind)
-                arcadeCabinets.forEach(cab => {
-                    if (validX > cab.minX - playerRadius && validX < cab.maxX + playerRadius &&
-                        playerPos.z > cab.minZ - playerRadius && playerPos.z < cab.maxZ + playerRadius) {
-                        validX = playerPos.x;
-                    }
-                    if (validX > cab.minX - playerRadius && validX < cab.maxX + playerRadius &&
-                        validZ > cab.minZ - playerRadius && validZ < cab.maxZ + playerRadius) {
-                        validZ = playerPos.z;
-                    }
-                });
-
-                playerPos.x = validX;
-                playerPos.z = validZ;
-            }
-
-            camera.position.copy(playerPos);
-
-            const euler = new THREE.Euler(pitch, yaw, 0, 'YXZ');
-            camera.quaternion.setFromEuler(euler);
-        }
-
-        function updateRaycasting() {
-            if (!isPointerLocked) {
-                hideHUDPrompt();
-                return;
-            }
-
-            raycaster.setFromCamera(centerRayVector, camera);
-
-            const interactables = [];
-            arcadeCabinets.forEach(cab => interactables.push(cab.screenMesh));
-
-            const intersects = raycaster.intersectObjects(interactables);
-            const crosshair = document.getElementById('crosshair');
-
-            if (intersects.length > 0 && intersects[0].distance < 4.8) {
-                const cabId = intersects[0].object.userData.cabinetId;
-                const cabinet = arcadeCabinets.find(c => c.id === cabId);
-
-                if (cabinet) {
-                    if (targetCabinet !== cabinet) {
-                        targetCabinet = cabinet;
-                        playSynthBeep(620, 0.05, 'sine', 0.06);
-                        showHUDPrompt(cabinet);
-                    }
-                    crosshair.classList.add('reticle-locked');
-                    return;
-                }
-            }
-
-            if (targetCabinet) {
-                targetCabinet = null;
-                hideHUDPrompt();
-            }
-            crosshair.classList.remove('reticle-locked');
-        }
-
-        function showHUDPrompt(cabinet) {
-            const prompt = document.getElementById('hud-prompt');
-            const titleEl = document.getElementById('hud-title');
-
-            titleEl.innerText = cabinet.config.title;
-
-            if (cabinet.config.isSecret) {
-                titleEl.className = 'font-pixel font-bold text-base md:text-lg text-amber-400 mb-1';
-            } else {
-                titleEl.className = 'font-orbitron font-extrabold text-lg md:text-xl text-white';
-            }
-
-            document.getElementById('hud-url').innerText = cabinet.config.url;
-            document.getElementById('hud-category').innerText = cabinet.config.category;
-            
-            const actionText = cabinet.config.isAuth ? "CLICK OR PRESS [E] FOR ACCOUNT & SCORES" : "CLICK OR PRESS [E] TO LAUNCH";
-            document.getElementById('hud-action-text').innerText = actionText;
-
-            prompt.style.opacity = '1';
-            prompt.style.transform = 'translate(-50%, 0) scale(1)';
-        }
-
-        function hideHUDPrompt() {
-            const prompt = document.getElementById('hud-prompt');
-            prompt.style.opacity = '0';
-            prompt.style.transform = 'translate(-50%, 8px) scale(0.95)';
-        }
-
-        function launchTargetPortal() {
-            if (targetCabinet) {
-                if (targetCabinet.config.isAuth) {
-                    playSynthBeep(750, 0.1, 'sine', 0.1);
-                    openAuthModal();
-                } else if (targetCabinet.config.url) {
-                    playSynthBeep(880, 0.15, 'triangle', 0.2);
-                    window.location.href = targetCabinet.config.url;
-                }
-            }
-        }
-
-        /* --- Auth & High Scores UI Modal Logic --- */
-        function openAuthModal() {
-            if (document.pointerLockElement) {
-                document.exitPointerLock();
-            }
-            const modal = document.getElementById('auth-modal');
-            modal.classList.remove('pointer-events-none', 'opacity-0');
-            modal.classList.add('opacity-100');
-
-            if (window.arcadeAuth && window.arcadeAuth.currentUser) {
-                switchAuthTab('scores');
-            } else {
-                switchAuthTab('login');
-            }
-        }
-
-        function closeAuthModal() {
-            const modal = document.getElementById('auth-modal');
-            modal.classList.add('pointer-events-none', 'opacity-0');
-            modal.classList.remove('opacity-100');
-        }
-
-        function switchAuthTab(tab) {
-            const vLogin = document.getElementById('view-login');
-            const vRegister = document.getElementById('view-register');
-            const vScores = document.getElementById('view-scores');
-
-            const btnLogin = document.getElementById('tab-btn-login');
-            const btnRegister = document.getElementById('tab-btn-register');
-            const btnScores = document.getElementById('tab-btn-scores');
-
-            [vLogin, vRegister, vScores].forEach(v => v.classList.add('hidden'));
-            [btnLogin, btnRegister, btnScores].forEach(b => {
-                b.className = 'flex-1 py-2 text-center text-slate-400 hover:text-white';
-            });
-
-            if (tab === 'login') {
-                vLogin.classList.remove('hidden');
-                btnLogin.className = 'flex-1 py-2 text-center text-cyan-400 border-b-2 border-cyan-400 font-bold';
-            } else if (tab === 'register') {
-                vRegister.classList.remove('hidden');
-                btnRegister.className = 'flex-1 py-2 text-center text-pink-400 border-b-2 border-pink-400 font-bold';
-            } else if (tab === 'scores') {
-                vScores.classList.remove('hidden');
-                btnScores.className = 'flex-1 py-2 text-center text-amber-400 border-b-2 border-amber-400 font-bold';
-                renderScoresList();
-            }
-        }
-
-        function handleLogin() {
-            const u = document.getElementById('login-username').value;
-            const p = document.getElementById('login-password').value;
-            const errEl = document.getElementById('login-error');
-
-            const res = window.arcadeAuth.login(u, p);
-            if (res.success) {
-                errEl.classList.add('hidden');
-                switchAuthTab('scores');
-            } else {
-                errEl.innerText = res.message;
-                errEl.classList.remove('hidden');
-            }
-        }
-
-        function handleRegister() {
-            const u = document.getElementById('reg-username').value;
-            const p = document.getElementById('reg-password').value;
-            const errEl = document.getElementById('register-error');
-
-            const res = window.arcadeAuth.register(u, p);
-            if (res.success) {
-                errEl.classList.add('hidden');
-                switchAuthTab('scores');
-            } else {
-                errEl.innerText = res.message;
-                errEl.classList.remove('hidden');
-            }
-        }
-
-        function handleLogout() {
-            window.arcadeAuth.logout();
-            switchAuthTab('login');
-        }
-
-        function renderScoresList() {
-            const listEl = document.getElementById('high-scores-list');
-            const logoutBtn = document.getElementById('logout-btn');
-            const currentUser = window.arcadeAuth ? window.arcadeAuth.currentUser : null;
-
-            if (!currentUser) {
-                logoutBtn.classList.add('hidden');
-                listEl.innerHTML = `
-                    <div class="p-4 text-center text-slate-400 bg-slate-900/50 rounded-lg">
-                        Please login or register to track your game scores.
-                    </div>
-                `;
-                return;
-            }
-
-            logoutBtn.classList.remove('hidden');
-            const scores = window.arcadeAuth.getUserHighScores();
-
-            let html = '';
-            MAIN_ARCADE_CONFIGS.concat(SECRET_CABINET_CONFIG).forEach(cab => {
-                if (cab.isAuth) return;
-                const score = scores[cab.id] || 0;
-                html += `
-                    <div class="flex justify-between items-center p-2.5 bg-slate-900/70 border border-slate-800 rounded-lg">
-                        <span class="text-slate-200 font-bold">${cab.title}</span>
-                        <span class="text-cyan-400 font-orbitron font-bold">${score} PTS</span>
-                    </div>
-                `;
-            });
-
-            listEl.innerHTML = html;
-        }
-
-        const clock = new THREE.Clock();
-
-        function animate() {
-            requestAnimationFrame(animate);
-
-            const delta = Math.min(clock.getDelta(), 0.1);
-            const elapsedTime = clock.getElapsedTime();
-
-            updatePlayerMovement(delta);
-            updateRaycasting();
-            updateScreenTextures(elapsedTime);
-
-            renderer.render(scene, camera);
-        }
-
-        function onWindowResize() {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        }
-
-        window.onload = () => {
-            init3DScene();
-        };
-    </script>
+    <iframe id="game-iframe" src="" frameborder="0" allowfullscreen></iframe>
+  </div>
+
+  <!-- Three.js Library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="auth.js"></script>
+
+  <script>
+    // Arcade Cabinets Metadata
+    const cabinetsData = [
+      { id: 0, title: "Labyrinthe à Jojo", url: "https://labyrintheajojo.vercel.app" },
+      { id: 1, title: "Tour Infinie", url: "https://tourinfinie.vercel.app" }
+    ];
+
+    let scene, camera, renderer;
+    let cabinets = [];
+    let raycaster = new THREE.Raycaster();
+    let mouse = new THREE.Vector2();
+    let selectedCabinet = null;
+
+    function init3DArcade() {
+      const container = document.getElementById('webgl-canvas');
+      
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x050505);
+
+      camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+      camera.position.set(0, 2, 8);
+
+      renderer = new THREE.WebGLRenderer({ canvas: container, antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+
+      // Lighting
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+      scene.add(ambientLight);
+
+      const pointLight = new THREE.PointLight(0x00ffcc, 1, 15);
+      pointLight.position.set(0, 5, 2);
+      scene.add(pointLight);
+
+      // Simple Arcade Cabinet Geometries
+      cabinetsData.forEach((data, index) => {
+        const geometry = new THREE.BoxGeometry(1.5, 3, 1.5);
+        const material = new THREE.MeshPhongMaterial({ 
+          color: index === 0 ? 0x00ffcc : 0xff00ff 
+        });
+        const mesh = new THREE.Mesh(geometry, material);
+        mesh.position.set((index - 0.5) * 3, 0, 0);
+        mesh.userData = data;
+        
+        scene.add(mesh);
+        cabinets.push(mesh);
+      });
+
+      window.addEventListener('resize', onWindowResize);
+      window.addEventListener('click', onCabinetClick);
+
+      animate();
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      cabinets.forEach(cab => { cab.rotation.y += 0.005; });
+      renderer.render(scene, camera);
+    }
+
+    function onWindowResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    function onCabinetClick(event) {
+      mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+      mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+      raycaster.setFromCamera(mouse, camera);
+      const intersects = raycaster.intersectObjects(cabinets);
+
+      if (intersects.length > 0) {
+        selectedCabinet = intersects[0].object.userData;
+        openPanel(selectedCabinet);
+      }
+    }
+
+    function openPanel(cabinet) {
+      const scores = getScores();
+      document.getElementById('cabinet-title').textContent = cabinet.title;
+      document.getElementById('cabinet-high-score').textContent = scores[cabinet.id] || 0;
+      
+      const playBtn = document.getElementById('play-btn');
+      playBtn.onclick = () => launchGame(cabinet);
+
+      document.getElementById('cabinet-panel').style.display = 'block';
+    }
+
+    function closePanel() {
+      document.getElementById('cabinet-panel').style.display = 'none';
+    }
+
+    function launchGame(cabinet) {
+      closePanel();
+      window.activeArcadeGameId = cabinet.id;
+      
+      const iframe = document.getElementById('game-iframe');
+      iframe.src = cabinet.url;
+      
+      document.getElementById('game-modal-title').textContent = cabinet.title;
+      document.getElementById('game-modal').style.display = 'flex';
+    }
+
+    function closeGameModal() {
+      const iframe = document.getElementById('game-iframe');
+      iframe.src = ''; // Stop game execution
+      document.getElementById('game-modal').style.display = 'none';
+      window.activeArcadeGameId = null;
+      renderHighScores();
+    }
+
+    function promptLogin() {
+      const name = prompt("Enter your Arcade Username:");
+      if (name) {
+        setCurrentUser(name);
+      }
+    }
+
+    window.onload = init3DArcade;
+  </script>
 </body>
 </html>
