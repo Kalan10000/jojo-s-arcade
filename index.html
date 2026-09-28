@@ -199,6 +199,7 @@
             pivotGroup: null,
             panelMesh: null,
             isOpen: false,
+            targetRotation: 0,
             currentRotation: 0,
             isExit: true
         };
@@ -1195,7 +1196,7 @@
             document.getElementById('hud-url').innerText = "LEAVE ARCADE & CLOSE TAB";
             document.getElementById('hud-category').innerText = "SYSTEM EXIT";
             
-            const actionText = exitDoor.isOpen ? "WALK INSIDE OR PRESS [E] TO EXIT" : "CLICK OR PRESS [E] TO OPEN DOOR";
+            const actionText = exitDoor.isOpen ? "CLICK/[E] TO CLOSE (WALK THRU TO EXIT)" : "CLICK OR PRESS [E] TO OPEN DOOR";
             document.getElementById('hud-action-text').innerText = actionText;
 
             prompt.style.opacity = '1';
@@ -1211,13 +1212,10 @@
         function launchTargetPortal() {
             if (targetInteractable) {
                 if (targetInteractable.isExit) {
-                    if (!exitDoor.isOpen) {
-                        exitDoor.isOpen = true;
-                        playSynthBeep(520, 0.15, 'triangle', 0.15);
-                        showExitDoorHUD();
-                    } else {
-                        exitGame();
-                    }
+                    exitDoor.isOpen = !exitDoor.isOpen;
+                    exitDoor.targetRotation = exitDoor.isOpen ? Math.PI * 0.52 : 0;
+                    playSynthBeep(exitDoor.isOpen ? 520 : 380, 0.15, 'triangle', 0.15);
+                    showExitDoorHUD();
                 } else if (targetInteractable.config) {
                     if (targetInteractable.config.isAuth) {
                         playSynthBeep(750, 0.1, 'sine', 0.1);
@@ -1401,12 +1399,17 @@
             const delta = Math.min(clock.getDelta(), 0.1);
             const elapsedTime = clock.getElapsedTime();
 
-            // Slower door opening transition (~3 seconds)
-            if (exitDoor.isOpen && exitDoor.currentRotation < Math.PI * 0.52) {
-                exitDoor.currentRotation += delta * 0.55;
-                if (exitDoor.currentRotation > Math.PI * 0.52) {
-                    exitDoor.currentRotation = Math.PI * 0.52;
+            // Smooth 3-second open/close animation loop
+            if (Math.abs(exitDoor.currentRotation - exitDoor.targetRotation) > 0.001) {
+                const diff = exitDoor.targetRotation - exitDoor.currentRotation;
+                const step = Math.sign(diff) * delta * 0.55;
+                
+                if (Math.abs(step) >= Math.abs(diff)) {
+                    exitDoor.currentRotation = exitDoor.targetRotation;
+                } else {
+                    exitDoor.currentRotation += step;
                 }
+                
                 exitDoor.pivotGroup.rotation.y = exitDoor.currentRotation;
             }
 
