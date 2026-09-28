@@ -115,8 +115,8 @@
         const frontZ = lastRowZ + 4.0;
         const backWallZ = -1.0;
         const secretRoomZ = -5.0;
+        const hallLength = frontZ - backWallZ; // Exact length so main floor ends right at backWallZ
         const hallCenterZ = (frontZ + backWallZ) / 2;
-        const hallLength = frontZ - backWallZ + 2.0;
 
         let scene, camera, renderer;
         let arcadeCabinets = [];
@@ -306,12 +306,18 @@
             frontWallTop.position.set(0, 3.95, frontZ);
             scene.add(frontWallTop);
 
-            // Closed back wall covering right and center (from x = -2.0 to 7.5), hiding secret room from direct view
+            // Solid back wall covering right and center (from x = -2.0 to 7.5)
             const backWallSolid = new THREE.Mesh(new THREE.BoxGeometry(9.5, 5.2, 0.3), wallMat);
             backWallSolid.position.set(2.75, 2.6, backWallZ);
             scene.add(backWallSolid);
 
-            createCleanSign(1.5, 3.8, backWallZ + 0.12, Math.PI);
+            // Fake clip-through wall panel covering the left passage (x = -7.5 to -2.0)
+            // Visually hides secret room, but you can walk right through it!
+            const fakeClipWall = new THREE.Mesh(new THREE.BoxGeometry(5.5, 5.2, 0.3), wallMat);
+            fakeClipWall.position.set(-4.75, 2.6, backWallZ);
+            scene.add(fakeClipWall);
+
+            createCleanSign(1.5, 3.8, backWallZ + 0.18, Math.PI);
         }
 
         function setupExitDoor() {
@@ -396,9 +402,10 @@
             woodTex.repeat.set(3, 3);
 
             const secretFloorMat = new THREE.MeshStandardMaterial({ map: woodTex, roughness: 0.5 });
-            const secretFloor = new THREE.Mesh(new THREE.PlaneGeometry(9, 8), secretFloorMat);
+            // Slightly offset secret floor height (-0.002) to guarantee zero Z-fighting at floor boundary
+            const secretFloor = new THREE.Mesh(new THREE.PlaneGeometry(9, 7.98), secretFloorMat);
             secretFloor.rotation.x = -Math.PI / 2;
-            secretFloor.position.set(-6.5, 0, secretRoomZ);
+            secretFloor.position.set(-6.5, -0.002, secretRoomZ - 0.01);
             scene.add(secretFloor);
 
             const secretCeilingMat = new THREE.MeshStandardMaterial({ color: 0x1f1107, roughness: 0.9 });
@@ -926,7 +933,7 @@
             // Main Hall bounds
             const inMainHall = (x >= -7.5 + playerRadius && x <= 7.5 - playerRadius && z >= backWallZ + playerRadius && z <= frontZ - playerRadius);
 
-            // Secret Room & Corridor bounds (accessed via left passage)
+            // Secret Room & Corridor bounds (includes clipping directly through the fake wall passage around backWallZ)
             const inSecretArea = (x >= -11.0 + playerRadius && x <= -2.0 - playerRadius && z >= -9.0 + playerRadius && z <= backWallZ + playerRadius);
 
             return inMainHall || inSecretArea;
