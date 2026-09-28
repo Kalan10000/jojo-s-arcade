@@ -385,15 +385,15 @@
             frontWallTop.rotation.y = Math.PI;
             scene.add(frontWallTop);
 
-            // Back wall sections & portal opening into secret room at Z = -1.0
+            // Back wall sections & portal opening into secret room at Z = -1.0 (Fixed rotation to face inward)[cite: 1]
             const backRightWall = new THREE.Mesh(new THREE.PlaneGeometry(9.5, 5.2), wallMat);
             backRightWall.position.set(2.75, 2.6, backWallZ);
-            backRightWall.rotation.y = Math.PI;
+            backRightWall.rotation.y = 0; 
             scene.add(backRightWall);
 
             const backLeftWall = new THREE.Mesh(new THREE.PlaneGeometry(3.0, 5.2), wallMat);
             backLeftWall.position.set(-6.0, 2.6, backWallZ);
-            backLeftWall.rotation.y = Math.PI;
+            backLeftWall.rotation.y = 0; 
             scene.add(backLeftWall);
 
             // Clean portal archway frame
@@ -473,6 +473,7 @@
                 new THREE.MeshBasicMaterial({ map: exitTex })
             );
             signMesh.position.set(0, 2.9, 0.01);
+            signMesh.rotation.y = Math.PI; // Fixed to face inward toward players in the hall[cite: 1]
             doorGroup.add(signMesh);
 
             const exitLight = new THREE.PointLight(0xff0055, 1.4, 6);
@@ -523,10 +524,10 @@
 
             const secretWallMat = new THREE.MeshStandardMaterial({ map: paperTex, roughness: 0.7 });
 
-            // Secret room back wall at Z = -9.0
+            // Secret room back wall at Z = -9.0 (Fixed rotation to face inward)[cite: 1]
             const secretBack = new THREE.Mesh(new THREE.PlaneGeometry(9, 4.2), secretWallMat);
             secretBack.position.set(-6.5, 2.1, -9.0);
-            secretBack.rotation.y = Math.PI;
+            secretBack.rotation.y = 0; 
             scene.add(secretBack);
 
             // Secret room left wall at X = -11.0
@@ -607,7 +608,7 @@
             const group = cabinetData.group;
 
             group.position.set(posX, 0, posZ);
-            group.rotation.y = 0; // Fixed: faces forward towards the secret room entrance/portal
+            group.rotation.y = 0; 
             scene.add(group);
 
             arcadeCabinets.push({
