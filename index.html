@@ -396,6 +396,20 @@
             backLeftWall.rotation.y = Math.PI;
             scene.add(backLeftWall);
 
+            // Clean portal archway frame
+            const portalFrameMat = new THREE.MeshStandardMaterial({ color: 0x181026, roughness: 0.5, metalness: 0.4 });
+            const portalPillarL = new THREE.Mesh(new THREE.BoxGeometry(0.18, 4.2, 0.15), portalFrameMat);
+            portalPillarL.position.set(-4.5, 2.1, backWallZ);
+            scene.add(portalPillarL);
+
+            const portalPillarR = new THREE.Mesh(new THREE.BoxGeometry(0.18, 4.2, 0.15), portalFrameMat);
+            portalPillarR.position.set(-2.0, 2.1, backWallZ);
+            scene.add(portalPillarR);
+
+            const portalLintel = new THREE.Mesh(new THREE.BoxGeometry(2.68, 0.95, 0.15), portalFrameMat);
+            portalLintel.position.set(-3.25, 3.725, backWallZ);
+            scene.add(portalLintel);
+
             createCleanSign(0, 3.8, backWallZ - 0.1, Math.PI);
         }
 
@@ -593,7 +607,7 @@
             const group = cabinetData.group;
 
             group.position.set(posX, 0, posZ);
-            group.rotation.y = Math.PI;
+            group.rotation.y = 0; // Fixed: faces forward towards the secret room entrance/portal
             scene.add(group);
 
             arcadeCabinets.push({
