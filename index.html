@@ -155,7 +155,6 @@
     </div>
 
     <script>
-        // Updated Configurations - Cabinet 5 replaced with CONNECTIONS
         const MAIN_ARCADE_CONFIGS = [
             { id: 0, title: "LABYRINTHE", category: "3D Labyrinth", url: "https://labyrintheajojo.vercel.app/", color: "#ff0055" },
             { id: 1, title: "TOUR INFINIE", category: "Tour infinie", url: "https://tourinfinie.vercel.app", color: "#00f3ff" },
@@ -389,7 +388,6 @@
             const doorGroup = new THREE.Group();
             doorGroup.position.set(0, 0, 17.85);
 
-            // Metallic Frame
             const frameMat = new THREE.MeshStandardMaterial({ color: 0x151221, roughness: 0.4, metalness: 0.8 });
             const frameL = new THREE.Mesh(new THREE.BoxGeometry(0.12, 2.6, 0.15), frameMat);
             frameL.position.set(-0.82, 1.3, 0);
@@ -403,7 +401,6 @@
             frameTop.position.set(0, 2.54, 0);
             doorGroup.add(frameTop);
 
-            // Pivot Group for Door Hinge
             const pivotGroup = new THREE.Group();
             pivotGroup.position.set(-0.76, 1.25, 0);
 
@@ -419,7 +416,6 @@
             panelMesh.userData = { isExitDoor: true };
             pivotGroup.add(panelMesh);
 
-            // Handle Bar
             const handleMat = new THREE.MeshStandardMaterial({ color: 0xff0055, metalness: 0.9, roughness: 0.1, emissive: 0xff0055, emissiveIntensity: 0.6 });
             const handleBar = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.06, 0.08), handleMat);
             handleBar.position.set(0.76, 0, -0.06);
@@ -427,7 +423,6 @@
 
             doorGroup.add(pivotGroup);
 
-            // Neon Sign Above Door
             const exitCanvas = document.createElement('canvas');
             exitCanvas.width = 512;
             exitCanvas.height = 128;
@@ -452,7 +447,6 @@
             signMesh.rotation.y = Math.PI;
             doorGroup.add(signMesh);
 
-            // Red Spotlight above door
             const exitLight = new THREE.PointLight(0xff0055, 1.4, 6);
             exitLight.position.set(0, 2.7, -0.4);
             doorGroup.add(exitLight);
@@ -621,12 +615,10 @@
                 emissiveIntensity: isWood ? 0.0 : 0.25
             });
 
-            // 1. Main Cabinet Body
             const bodyMesh = new THREE.Mesh(new THREE.BoxGeometry(0.85, 2.05, 0.80), bodyMat);
             bodyMesh.position.y = 1.025;
             group.add(bodyMesh);
 
-            // 2. T-Molding Edge Trim
             const trimL = new THREE.Mesh(new THREE.BoxGeometry(0.03, 2.06, 0.03), trimMat);
             trimL.position.set(-0.43, 1.025, 0.405);
             group.add(trimL);
@@ -635,7 +627,6 @@
             trimR.position.set(0.43, 1.025, 0.405);
             group.add(trimR);
 
-            // 3. Recessed CRT Screen Frame & Canvas
             const screenFrame = new THREE.Mesh(
                 new THREE.BoxGeometry(0.72, 0.58, 0.15),
                 new THREE.MeshStandardMaterial({ color: 0x110e1a, roughness: 0.5 })
@@ -660,7 +651,6 @@
             screenMesh.userData = { cabinetId: data.id };
             bodyMesh.userData = { cabinetId: data.id };
 
-            // 4. Marquee Header
             const marqueeCanvas = document.createElement('canvas');
             marqueeCanvas.width = 512;
             marqueeCanvas.height = 128;
@@ -706,14 +696,12 @@
             marqueeMesh.position.set(0, 1.84, 0.38);
             group.add(marqueeMesh);
 
-            // 5. Control Deck
             const deck = new THREE.Mesh(new THREE.BoxGeometry(0.81, 0.10, 0.38), bodyMat);
             deck.position.set(0, 0.95, 0.44);
             deck.rotation.x = 0.15;
             group.add(deck);
 
             const stickGroup = new THREE.Group();
-            
             const washer = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.01, 16), new THREE.MeshStandardMaterial({ color: 0x111111 }));
             washer.position.y = 0.005;
             stickGroup.add(washer);
@@ -747,7 +735,6 @@
                 }
             }
 
-            // 6. Coin Door
             const doorFrame = new THREE.Mesh(
                 new THREE.BoxGeometry(0.40, 0.46, 0.04),
                 new THREE.MeshStandardMaterial({ color: 0x1a1a1a, metalness: 0.8, roughness: 0.3 })
@@ -792,7 +779,6 @@
             ctx.fillStyle = '#06030c';
             ctx.fillRect(0, 0, width, height);
 
-            // Matrix style scanning grid
             ctx.strokeStyle = '#ff00aa';
             ctx.lineWidth = 1;
             ctx.globalAlpha = 0.3;
@@ -804,7 +790,6 @@
             }
             ctx.globalAlpha = 1.0;
 
-            // Lock Icon / Shield
             ctx.fillStyle = loggedIn ? '#00ffaa' : '#ff00aa';
             ctx.beginPath();
             ctx.arc(width / 2, height * 0.35, 36, 0, Math.PI * 2);
@@ -836,7 +821,6 @@
                 }
             }
 
-            // CRT Scanlines
             ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
             for (let y = 0; y < height; y += 4) {
                 ctx.fillRect(0, y, width, 2);
@@ -1009,7 +993,7 @@
             const hintBanner = document.getElementById('click-hint-banner');
 
             document.addEventListener('click', (e) => {
-                if (e.target.closest('#btn-audio') || e.target.closest('#auth-modal')) return;
+                if (e.target.closest('#btn-audio') || e.target.closest('#auth-modal') || isExiting) return;
 
                 if (!isPointerLocked) {
                     document.body.requestPointerLock();
@@ -1026,7 +1010,7 @@
                     hintBanner.style.opacity = '0';
                 } else {
                     isPointerLocked = false;
-                    hintBanner.style.opacity = '1';
+                    if (!isExiting) hintBanner.style.opacity = '1';
                 }
             });
 
@@ -1041,6 +1025,7 @@
             });
 
             document.addEventListener('keydown', (e) => {
+                if (isExiting) return;
                 switch (e.code) {
                     case 'KeyW': case 'ArrowUp': moveForward = true; break;
                     case 'KeyS': case 'ArrowDown': moveBackward = true; break;
@@ -1062,7 +1047,7 @@
         }
 
         function updatePlayerMovement(delta) {
-            if (!isPointerLocked) return;
+            if (!isPointerLocked || isExiting) return;
 
             const moveDir = new THREE.Vector3();
             const front = new THREE.Vector3(-Math.sin(yaw), 0, -Math.cos(yaw)).normalize();
@@ -1082,7 +1067,6 @@
                 let validX = nextX;
                 let validZ = nextZ;
 
-                // Room Boundary Collisions
                 if (validZ < -9.5) {
                     if (validX < -11.0 + playerRadius) validX = -11.0 + playerRadius;
                     if (validX > -2.0 - playerRadius) validX = -2.0 - playerRadius;
@@ -1101,6 +1085,7 @@
                     // Stepping inside open exit door triggers tab exit
                     if (exitDoor.isOpen && validZ > 17.6 && atDoorway) {
                         exitGame();
+                        return;
                     }
 
                     const isFacingPortal = (validX >= -7.0 && validX <= -4.5);
@@ -1109,7 +1094,6 @@
                     }
                 }
 
-                // Cabinet Collisions (Allows walking behind)
                 arcadeCabinets.forEach(cab => {
                     if (validX > cab.minX - playerRadius && validX < cab.maxX + playerRadius &&
                         playerPos.z > cab.minZ - playerRadius && playerPos.z < cab.maxZ + playerRadius) {
@@ -1132,7 +1116,7 @@
         }
 
         function updateRaycasting() {
-            if (!isPointerLocked) {
+            if (!isPointerLocked || isExiting) {
                 hideHUDPrompt();
                 targetInteractable = null;
                 return;
@@ -1255,24 +1239,39 @@
                 document.exitPointerLock();
             }
 
-            setTimeout(() => {
+            // Attempt programmatic close
+            try {
                 window.close();
-                window.top.close();
+                window.open('', '_self', '');
+                window.close();
+            } catch (e) {}
 
-                // Fallback display if browser prevents automatic window closing
-                setTimeout(() => {
-                    document.body.innerHTML = `
-                        <div class="h-full w-full bg-black flex flex-col items-center justify-center text-center p-6 font-orbitron">
-                            <div class="w-16 h-16 rounded-full bg-pink-500/20 border border-pink-500 flex items-center justify-center mb-4 animate-pulse">
-                                <i class="fa-solid fa-door-open text-2xl text-pink-500"></i>
-                            </div>
-                            <h1 class="text-3xl font-extrabold text-pink-500 mb-2">ARCADE CLOSED</h1>
-                            <p class="text-slate-300 text-sm mb-4">You have exited JoJo's Arcade.</p>
-                            <p class="text-slate-500 text-xs max-w-sm">If your browser prevented the tab from closing automatically, you can close this tab now.</p>
+            // Display retro shut down interface
+            document.body.innerHTML = `
+                <div class="h-full w-full bg-[#040208] flex flex-col items-center justify-center text-center p-6 font-orbitron relative overflow-hidden select-none">
+                    <div class="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.3)_50%)] bg-[length:100%_4px] pointer-events-none"></div>
+
+                    <div class="relative z-10 glass-panel p-8 md:p-12 rounded-3xl border border-pink-500/40 shadow-[0_0_50px_rgba(255,0,127,0.2)] max-w-md w-full">
+                        <div class="w-20 h-20 mx-auto rounded-full bg-pink-500/10 border-2 border-pink-500 flex items-center justify-center mb-6 shadow-[0_0_20px_rgba(255,0,127,0.4)]">
+                            <i class="fa-solid fa-power-off text-3xl text-pink-500"></i>
                         </div>
-                    `;
-                }, 100);
-            }, 200);
+
+                        <h1 class="text-2xl md:text-3xl font-extrabold text-white mb-2 tracking-wider">SYSTEM SHUTDOWN</h1>
+                        <p class="text-pink-400 font-mono text-xs uppercase tracking-widest mb-6">Arcade Offline</p>
+
+                        <p class="text-slate-300 text-xs leading-relaxed mb-6">
+                            You have exited JoJo's Arcade. You can safely close this browser tab now.
+                        </p>
+
+                        <div class="flex flex-col gap-3">
+                            <button onclick="location.reload()" class="w-full py-3 bg-cyan-600 hover:bg-cyan-500 font-orbitron font-bold text-xs rounded-xl transition text-white shadow-lg shadow-cyan-600/30 flex items-center justify-center space-x-2">
+                                <i class="fa-solid fa-rotate-right"></i>
+                                <span>RE-ENTER ARCADE</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
         }
 
         /* --- Auth & High Scores UI Modal Logic --- */
@@ -1397,10 +1396,11 @@
         function animate() {
             requestAnimationFrame(animate);
 
+            if (isExiting) return;
+
             const delta = Math.min(clock.getDelta(), 0.1);
             const elapsedTime = clock.getElapsedTime();
 
-            // Animate door opening
             if (exitDoor.isOpen && exitDoor.currentRotation < Math.PI * 0.52) {
                 exitDoor.currentRotation += delta * 3.5;
                 if (exitDoor.currentRotation > Math.PI * 0.52) {
