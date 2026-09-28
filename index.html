@@ -161,8 +161,8 @@
             { id: 2, title: "NEON OVERDRIVE", category: "Neon overdrive", url: "https://neonoverdrive.vercel.app", color: "#39ff14" },
             { id: 3, title: "SPACIAL MASTER", category: "Spacial master", url: "https://spacialmaster.vercel.app", color: "#bf00ff" },
             { id: 4, title: "LA JUSTE COULEUR", category: "La juste couleur", url: "https://lajustecouleur.vercel.app", color: "#ffcc00" },
-            { id: 5, title: "CONNECTIONS", category: "Account & Scores", url: "#connections", color: "#ff00aa", isAuth: true }
-            { id: 6, title: "SANDWICH", category: "Simulateur de sandwich", url: "simulateursandwich.vercel.app", color: "#ff00aa", isAuth: true }
+            { id: 5, title: "CONNECTIONS", category: "Account & Scores", url: "#connections", color: "#ff00aa", isAuth: true },
+            { id: 6, title: "SANDWICH", category: "Simulateur de sandwich", url: "https://simulateursandwich.vercel.app", color: "#ff00aa" }
         ];
 
         const SECRET_CABINET_CONFIG = {
@@ -173,6 +173,18 @@
             color: "#ffaa00",
             isSecret: true
         };
+
+        // Dynamic Hall Layout Calculations based on Cabinet Rows
+        const totalRows = Math.ceil(MAIN_ARCADE_CONFIGS.length / 2);
+        const rowSpacing = 4.0;
+        const firstRowZ = 4.0;
+        const lastRowZ = firstRowZ - (totalRows - 1) * rowSpacing;
+        
+        // Dynamically compute hall depth and boundaries
+        const backWallZ = lastRowZ - 5.5;
+        const secretRoomZ = backWallZ - 3.5;
+        const hallCenterZ = (18.0 + backWallZ) / 2;
+        const hallLength = 18.0 - backWallZ + 2.0;
 
         // Global Engine State
         let scene, camera, renderer;
@@ -255,7 +267,7 @@
 
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x05030a);
-            scene.fog = new THREE.FogExp2(0x05030a, 0.02);
+            scene.fog = new THREE.FogExp2(0x05030a, 0.018);
 
             camera = new THREE.PerspectiveCamera(62, window.innerWidth / window.innerHeight, 0.1, 100);
             camera.position.copy(playerPos);
@@ -295,21 +307,23 @@
             dirLight.position.set(0, 10, 4);
             scene.add(dirLight);
 
-            const lightPositions = [12, 4, -4];
-            lightPositions.forEach((zPos, idx) => {
-                const color = idx % 2 === 0 ? 0x00f0ff : 0xff007f;
-                const pLight = new THREE.PointLight(color, 0.75, 12);
+            // Dynamically place point lights along the hall based on length
+            const lightCount = Math.max(2, totalRows);
+            for (let i = 0; i < lightCount; i++) {
+                const zPos = 4.0 - i * 4.0;
+                const color = i % 2 === 0 ? 0x00f0ff : 0xff007f;
+                const pLight = new THREE.PointLight(color, 0.75, 14);
                 pLight.position.set(0, 4.8, zPos);
                 scene.add(pLight);
-            });
+            }
 
             const secretRoomLight = new THREE.PointLight(0xffaa44, 1.2, 9);
-            secretRoomLight.position.set(-6.5, 3.2, -18.0);
+            secretRoomLight.position.set(-6.5, 3.2, secretRoomZ);
             scene.add(secretRoomLight);
         }
 
         function setupMainHall() {
-            const floorGeo = new THREE.PlaneGeometry(15, 28);
+            const floorGeo = new THREE.PlaneGeometry(15, hallLength);
 
             const tileCanvas = document.createElement('canvas');
             tileCanvas.width = 512;
@@ -329,29 +343,29 @@
             const floorTex = new THREE.CanvasTexture(tileCanvas);
             floorTex.wrapS = THREE.RepeatWrapping;
             floorTex.wrapT = THREE.RepeatWrapping;
-            floorTex.repeat.set(7.5, 14);
+            floorTex.repeat.set(7.5, hallLength / 2);
 
             const floorMat = new THREE.MeshStandardMaterial({ map: floorTex, roughness: 0.35, metalness: 0.25 });
             const floor = new THREE.Mesh(floorGeo, floorMat);
             floor.rotation.x = -Math.PI / 2;
-            floor.position.set(0, 0, 4);
+            floor.position.set(0, 0, hallCenterZ);
             scene.add(floor);
 
             const ceilingMat = new THREE.MeshStandardMaterial({ color: 0x090612, roughness: 0.8 });
             const ceiling = new THREE.Mesh(floorGeo, ceilingMat);
             ceiling.rotation.x = Math.PI / 2;
-            ceiling.position.set(0, 5.2, 4);
+            ceiling.position.set(0, 5.2, hallCenterZ);
             scene.add(ceiling);
 
             const wallMat = new THREE.MeshStandardMaterial({ color: 0x0f0b1a, roughness: 0.7 });
 
-            const leftWall = new THREE.Mesh(new THREE.PlaneGeometry(28, 5.2), wallMat);
-            leftWall.position.set(-7.5, 2.6, 4);
+            const leftWall = new THREE.Mesh(new THREE.PlaneGeometry(hallLength, 5.2), wallMat);
+            leftWall.position.set(-7.5, 2.6, hallCenterZ);
             leftWall.rotation.y = Math.PI / 2;
             scene.add(leftWall);
 
-            const rightWall = new THREE.Mesh(new THREE.PlaneGeometry(28, 5.2), wallMat);
-            rightWall.position.set(7.5, 2.6, 4);
+            const rightWall = new THREE.Mesh(new THREE.PlaneGeometry(hallLength, 5.2), wallMat);
+            rightWall.position.set(7.5, 2.6, hallCenterZ);
             rightWall.rotation.y = -Math.PI / 2;
             scene.add(rightWall);
 
@@ -370,19 +384,22 @@
             frontWallTop.rotation.y = Math.PI;
             scene.add(frontWallTop);
 
-            const backRightWall = new THREE.Mesh(new THREE.PlaneGeometry(12, 5.2), wallMat);
-            backRightWall.position.set(1.5, 2.6, -10);
+            // Back wall sections & secret room entrance partition
+            const backRightWidth = 7.5 - (-2.0); // from right wall to secret room opening
+            const backRightWall = new THREE.Mesh(new THREE.PlaneGeometry(backRightWidth, 5.2), wallMat);
+            backRightWall.position.set(1.5, 2.6, backWallZ);
             scene.add(backRightWall);
 
             const backLeftWall = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 5.2), wallMat);
-            backLeftWall.position.set(-7.25, 2.6, -10);
+            backLeftWall.position.set(-7.25, 2.6, backWallZ);
             scene.add(backLeftWall);
 
-            const phaseWall = new THREE.Mesh(new THREE.PlaneGeometry(2.5, 5.2), wallMat);
-            phaseWall.position.set(-5.75, 2.6, -9.99);
+            const phaseWallWidth = Math.abs(-2.0 - (-4.5));
+            const phaseWall = new THREE.Mesh(new THREE.PlaneGeometry(phaseWallWidth, 5.2), wallMat);
+            phaseWall.position.set(-3.25, 2.6, backWallZ);
             scene.add(phaseWall);
 
-            createCleanSign(0, 3.8, -9.9, 0);
+            createCleanSign(0, 3.8, backWallZ + 0.1, 0);
         }
 
         function setupExitDoor() {
@@ -469,13 +486,13 @@
             const secretFloorMat = new THREE.MeshStandardMaterial({ map: woodTex, roughness: 0.5 });
             const secretFloor = new THREE.Mesh(new THREE.PlaneGeometry(9, 12), secretFloorMat);
             secretFloor.rotation.x = -Math.PI / 2;
-            secretFloor.position.set(-6.5, 0, -16);
+            secretFloor.position.set(-6.5, 0, secretRoomZ);
             scene.add(secretFloor);
 
             const secretCeilingMat = new THREE.MeshStandardMaterial({ color: 0x1f1107, roughness: 0.9 });
             const secretCeiling = new THREE.Mesh(new THREE.PlaneGeometry(9, 12), secretCeilingMat);
             secretCeiling.rotation.x = Math.PI / 2;
-            secretCeiling.position.set(-6.5, 4.2, -16);
+            secretCeiling.position.set(-6.5, 4.2, secretRoomZ);
             scene.add(secretCeiling);
 
             const paperCanvas = document.createElement('canvas');
@@ -497,16 +514,16 @@
             const secretWallMat = new THREE.MeshStandardMaterial({ map: paperTex, roughness: 0.7 });
 
             const secretBack = new THREE.Mesh(new THREE.PlaneGeometry(9, 4.2), secretWallMat);
-            secretBack.position.set(-6.5, 2.1, -22);
+            secretBack.position.set(-6.5, 2.1, secretRoomZ - 6);
             scene.add(secretBack);
 
             const secretLeft = new THREE.Mesh(new THREE.PlaneGeometry(12, 4.2), secretWallMat);
-            secretLeft.position.set(-11.0, 2.1, -16);
+            secretLeft.position.set(-11.0, 2.1, secretRoomZ);
             secretLeft.rotation.y = Math.PI / 2;
             scene.add(secretLeft);
 
             const secretRight = new THREE.Mesh(new THREE.PlaneGeometry(12, 4.2), secretWallMat);
-            secretRight.position.set(-2.0, 2.1, -16);
+            secretRight.position.set(-2.0, 2.1, secretRoomZ);
             secretRight.rotation.y = -Math.PI / 2;
             scene.add(secretRight);
         }
@@ -538,14 +555,12 @@
         }
 
         function buildMainCabinets() {
-            const zPositions = [4.0, 0.0, -4.0];
-
             MAIN_ARCADE_CONFIGS.forEach((data, index) => {
                 const isLeft = index % 2 === 0;
                 const row = Math.floor(index / 2);
 
                 const posX = isLeft ? -5.5 : 5.5;
-                const posZ = zPositions[row];
+                const posZ = firstRowZ - (row * rowSpacing);
                 const rotY = isLeft ? Math.PI / 2.4 : -Math.PI / 2.4;
 
                 const cabinetData = createRealisticCabinetMesh(data, false);
@@ -572,7 +587,7 @@
 
         function buildSecretCabinet() {
             const posX = -6.5;
-            const posZ = -19.5;
+            const posZ = secretRoomZ - 3.5;
 
             const cabinetData = createRealisticCabinetMesh(SECRET_CABINET_CONFIG, true);
             const group = cabinetData.group;
@@ -1068,10 +1083,10 @@
                 let validX = nextX;
                 let validZ = nextZ;
 
-                if (validZ < -9.5) {
+                if (validZ < backWallZ + 0.5) {
                     if (validX < -11.0 + playerRadius) validX = -11.0 + playerRadius;
                     if (validX > -2.0 - playerRadius) validX = -2.0 - playerRadius;
-                    if (validZ < -22.0 + playerRadius) validZ = -22.0 + playerRadius;
+                    if (validZ < secretRoomZ - 6.0 + playerRadius) validZ = secretRoomZ - 6.0 + playerRadius;
                 } else {
                     if (validX < -7.5 + playerRadius) validX = -7.5 + playerRadius;
                     if (validX > 7.5 - playerRadius) validX = 7.5 - playerRadius;
@@ -1089,8 +1104,8 @@
                     }
 
                     const isFacingPortal = (validX >= -7.0 && validX <= -4.5);
-                    if (!isFacingPortal && validZ < -10.0 + playerRadius) {
-                        validZ = -10.0 + playerRadius;
+                    if (!isFacingPortal && validZ < backWallZ + playerRadius) {
+                        validZ = backWallZ + playerRadius;
                     }
                 }
 
@@ -1386,7 +1401,6 @@
             const scores = window.arcadeAuth.getUserHighScores();
 
             let html = '';
-            // Excludes SECRET_CABINET_CONFIG so Kalan's Games doesn't show up here
             MAIN_ARCADE_CONFIGS.forEach(cab => {
                 if (cab.isAuth) return;
                 const score = scores[cab.id] || 0;
@@ -1401,7 +1415,6 @@
             listEl.innerHTML = html;
         }
 
-        // Check URL parameters on load for incoming score returns from Vercel games
         function checkURLScoreReturn() {
             const params = new URLSearchParams(window.location.search);
             const gameIdParam = params.get('gameId');
@@ -1421,7 +1434,6 @@
                         }, 500);
                     }
                 }
-                // Clean URL params without reloading
                 window.history.replaceState({}, document.title, window.location.pathname);
             }
         }
