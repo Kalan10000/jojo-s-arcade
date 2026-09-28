@@ -98,18 +98,17 @@
     </div>
 
     <script>
-        // Vous pouvez ajouter autant de jeux que vous souhaitez ici, la salle s'allongera automatiquement !
+        // Ajout/Suppression de jeux simplifiée sans besoin d'identifiants (ID)
         const MAIN_ARCADE_CONFIGS = [
-            { id: 0, title: "LABYRINTHE", category: "Labyrinthe 3D", url: "https://labyrintheajojo.vercel.app/", color: "#ff0055" },
-            { id: 1, title: "TOUR INFINIE", category: "Tour infinie", url: "https://tourinfinie.vercel.app", color: "#00f3ff" },
-            { id: 2, title: "NEON OVERDRIVE", category: "Neon overdrive", url: "https://neonoverdrive.vercel.app", color: "#39ff14" },
-            { id: 3, title: "SPACIAL MASTER", category: "Spacial master", url: "https://spacialmaster.vercel.app", color: "#bf00ff" },
-            { id: 4, title: "LA JUSTE COULEUR", category: "La juste couleur", url: "https://lajustecouleur.vercel.app", color: "#ffcc00" },
-            { id: 5, title: "SANDWICH", category: "Simulateur de sandwich", url: "https://simulateursandwich.vercel.app", color: "#ff00aa" }
+            { title: "LABYRINTHE", category: "Labyrinthe 3D", url: "https://labyrintheajojo.vercel.app/", color: "#ff0055" },
+            { title: "TOUR INFINIE", category: "Tour infinie", url: "https://tourinfinie.vercel.app", color: "#00f3ff" },
+            { title: "NEON OVERDRIVE", category: "Neon overdrive", url: "https://neonoverdrive.vercel.app", color: "#39ff14" },
+            { title: "SPACIAL MASTER", category: "Spacial master", url: "https://spacialmaster.vercel.app", color: "#bf00ff" },
+            { title: "LA JUSTE COULEUR", category: "La juste couleur", url: "https://lajustecouleur.vercel.app", color: "#ffcc00" },
+            { title: "SANDWICH", category: "Simulateur de sandwich", url: "https://simulateursandwich.vercel.app", color: "#ff00aa" }
         ];
 
         const SECRET_CABINET_CONFIG = {
-            id: 99,
             title: "KALAN'S GAMES",
             category: "CLASSIQUE VINTAGE",
             url: "https://kalansgames.vercel.app/",
@@ -117,13 +116,12 @@
             isSecret: true
         };
 
-        // calcul dynamique de la taille de la salle selon le nombre de jeux
+        // Calcul dynamique de la taille de la salle selon le nombre de jeux
         const totalRows = Math.max(1, Math.ceil(MAIN_ARCADE_CONFIGS.length / 2));
         const rowSpacing = 4.0;
         const firstRowZ = 3.0;
         const lastRowZ = firstRowZ + (totalRows - 1) * rowSpacing;
         
-        // La porte de sortie et la fin de la salle reculent automatiquement avec lastRowZ
         const frontZ = lastRowZ + 4.0;
         const backWallZ = -1.0;
         const secretRoomZ = -5.0;
@@ -142,7 +140,6 @@
 
         let pitch = 0;
         let yaw = 0;
-        // Le spawnpoint s'adapte automatiquement juste devant la porte de sortie
         const playerPos = new THREE.Vector3(0, 1.13, frontZ - 1.5);
         const playerRadius = 0.35;
         const walkSpeed = 5.5;
@@ -248,7 +245,6 @@
             dirLight.position.set(0, 10, 4);
             scene.add(dirLight);
 
-            // Éclairage distribué dynamiquement le long de tout le couloir
             const lightCount = Math.max(2, totalRows);
             for (let i = 0; i < lightCount; i++) {
                 const zPos = 3.0 + i * 4.0;
@@ -308,7 +304,6 @@
             rightWall.position.set(7.5, 2.6, hallCenterZ);
             scene.add(rightWall);
 
-            // Mur avant s'ajuste dynamiquement sur frontZ
             const frontWallLeft = new THREE.Mesh(new THREE.BoxGeometry(6.6, 5.2, 0.3), wallMat);
             frontWallLeft.position.set(-4.2, 2.6, frontZ);
             scene.add(frontWallLeft);
@@ -504,8 +499,7 @@
                 group.rotation.y = rotY;
                 scene.add(group);
 
-                arcadeCabinets.push({
-                    id: data.id,
+                const cabinetObj = {
                     config: data,
                     group: group,
                     screenMesh: cabinetData.screenMesh,
@@ -515,7 +509,10 @@
                     maxX: posX + 0.55,
                     minZ: posZ - 0.55,
                     maxZ: posZ + 0.55
-                });
+                };
+
+                cabinetData.screenMesh.userData.cabinet = cabinetObj;
+                arcadeCabinets.push(cabinetObj);
             });
         }
 
@@ -530,8 +527,7 @@
             group.rotation.y = 0; 
             scene.add(group);
 
-            arcadeCabinets.push({
-                id: SECRET_CABINET_CONFIG.id,
+            const cabinetObj = {
                 config: SECRET_CABINET_CONFIG,
                 group: group,
                 screenMesh: cabinetData.screenMesh,
@@ -541,7 +537,10 @@
                 maxX: posX + 0.55,
                 minZ: posZ - 0.55,
                 maxZ: posZ + 0.55
-            });
+            };
+
+            cabinetData.screenMesh.userData.cabinet = cabinetObj;
+            arcadeCabinets.push(cabinetObj);
         }
 
         function createRealisticCabinetMesh(data, isWood) {
@@ -597,9 +596,6 @@
             screenMesh.position.set(0, 1.35, 0.43);
             screenMesh.rotation.x = -0.22;
             group.add(screenMesh);
-
-            screenMesh.userData = { cabinetId: data.id };
-            bodyMesh.userData = { cabinetId: data.id };
 
             const marqueeCanvas = document.createElement('canvas');
             marqueeCanvas.width = 512;
@@ -1035,17 +1031,15 @@
                     }
                     crosshair.classList.add('reticle-locked');
                     return;
-                } else if (hitObj.userData.cabinetId !== undefined) {
-                    const cabinet = arcadeCabinets.find(c => c.id === hitObj.userData.cabinetId);
-                    if (cabinet) {
-                        if (targetInteractable !== cabinet) {
-                            targetInteractable = cabinet;
-                            playSynthBeep(620, 0.05, 'sine', 0.06);
-                            showHUDPrompt(cabinet);
-                        }
-                        crosshair.classList.add('reticle-locked');
-                        return;
+                } else if (hitObj.userData.cabinet) {
+                    const cabinet = hitObj.userData.cabinet;
+                    if (targetInteractable !== cabinet) {
+                        targetInteractable = cabinet;
+                        playSynthBeep(620, 0.05, 'sine', 0.06);
+                        showHUDPrompt(cabinet);
                     }
+                    crosshair.classList.add('reticle-locked');
+                    return;
                 }
             }
 
@@ -1135,12 +1129,10 @@
 
                     <div class="relative z-10 glass-panel p-8 md:p-12 rounded-3xl border border-pink-500/40 shadow-[0_0_50px_rgba(255,0,127,0.25)] max-w-lg w-full flex flex-col items-center">
                         
-                        <!-- FLÈCHE VERS LE HAUT ANIMEÉ -->
                         <div class="text-5xl md:text-6xl text-pink-500 mb-6 animate-float-up drop-shadow-[0_0_20px_rgba(255,0,127,0.8)]">
                             <i class="fa-solid fa-arrow-up"></i>
                         </div>
 
-                        <!-- TEXTE DE SORTIE EN FRANÇAIS -->
                         <h1 class="text-lg md:text-xl font-black text-white tracking-wider leading-relaxed mb-8 uppercase text-cyan-300 drop-shadow-[0_0_10px_rgba(0,240,255,0.4)]">
                             vous voulez quitter le jeu ? alors cliquez sur le bouton fermer
                         </h1>
