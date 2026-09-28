@@ -174,17 +174,18 @@
             isSecret: true
         };
 
-        // Dynamic Hall Layout Calculations based on Cabinet Rows
+        // Dynamic Hall Layout Calculations (Growing Forward / Positive Z Direction)
         const totalRows = Math.ceil(MAIN_ARCADE_CONFIGS.length / 2);
         const rowSpacing = 4.0;
-        const firstRowZ = 4.0;
-        const lastRowZ = firstRowZ - (totalRows - 1) * rowSpacing;
+        const firstRowZ = 3.0;
+        const lastRowZ = firstRowZ + (totalRows - 1) * rowSpacing;
         
-        // Dynamically compute hall depth and boundaries
-        const backWallZ = lastRowZ - 5.5;
-        const secretRoomZ = backWallZ - 3.5;
-        const hallCenterZ = (18.0 + backWallZ) / 2;
-        const hallLength = 18.0 - backWallZ + 2.0;
+        // Dynamically compute hall depth and boundaries (growing toward positive Z)
+        const frontZ = lastRowZ + 4.0;
+        const backWallZ = firstRowZ - 3.5;
+        const secretRoomZ = backWallZ - 4.5;
+        const hallCenterZ = (frontZ + backWallZ) / 2;
+        const hallLength = frontZ - backWallZ + 2.0;
 
         // Global Engine State
         let scene, camera, renderer;
@@ -200,7 +201,7 @@
 
         let pitch = 0;
         let yaw = 0;
-        const playerPos = new THREE.Vector3(0, 1.13, 12);
+        const playerPos = new THREE.Vector3(0, 1.13, frontZ - 1.5);
         const playerRadius = 0.33;
         const walkSpeed = 5.5;
 
@@ -310,7 +311,7 @@
             // Dynamically place point lights along the hall based on length
             const lightCount = Math.max(2, totalRows);
             for (let i = 0; i < lightCount; i++) {
-                const zPos = 4.0 - i * 4.0;
+                const zPos = 3.0 + i * 4.0;
                 const color = i % 2 === 0 ? 0x00f0ff : 0xff007f;
                 const pLight = new THREE.PointLight(color, 0.75, 14);
                 pLight.position.set(0, 4.8, zPos);
@@ -369,42 +370,46 @@
             rightWall.rotation.y = -Math.PI / 2;
             scene.add(rightWall);
 
+            // Front wall sections (where exit door is located)
             const frontWallLeft = new THREE.Mesh(new THREE.PlaneGeometry(6.6, 5.2), wallMat);
-            frontWallLeft.position.set(-4.2, 2.6, 18);
+            frontWallLeft.position.set(-4.2, 2.6, frontZ);
             frontWallLeft.rotation.y = Math.PI;
             scene.add(frontWallLeft);
 
             const frontWallRight = new THREE.Mesh(new THREE.PlaneGeometry(6.6, 5.2), wallMat);
-            frontWallRight.position.set(4.2, 2.6, 18);
+            frontWallRight.position.set(4.2, 2.6, frontZ);
             frontWallRight.rotation.y = Math.PI;
             scene.add(frontWallRight);
 
             const frontWallTop = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 2.5), wallMat);
-            frontWallTop.position.set(0, 3.95, 18);
+            frontWallTop.position.set(0, 3.95, frontZ);
             frontWallTop.rotation.y = Math.PI;
             scene.add(frontWallTop);
 
-            // Back wall sections & secret room entrance partition
-            const backRightWidth = 7.5 - (-2.0); // from right wall to secret room opening
+            // Back wall sections & secret room entrance partition (at negative Z)
+            const backRightWidth = 7.5 - (-2.0); 
             const backRightWall = new THREE.Mesh(new THREE.PlaneGeometry(backRightWidth, 5.2), wallMat);
             backRightWall.position.set(1.5, 2.6, backWallZ);
+            backRightWall.rotation.y = Math.PI;
             scene.add(backRightWall);
 
             const backLeftWall = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 5.2), wallMat);
             backLeftWall.position.set(-7.25, 2.6, backWallZ);
+            backLeftWall.rotation.y = Math.PI;
             scene.add(backLeftWall);
 
             const phaseWallWidth = Math.abs(-2.0 - (-4.5));
             const phaseWall = new THREE.Mesh(new THREE.PlaneGeometry(phaseWallWidth, 5.2), wallMat);
             phaseWall.position.set(-3.25, 2.6, backWallZ);
+            phaseWall.rotation.y = Math.PI;
             scene.add(phaseWall);
 
-            createCleanSign(0, 3.8, backWallZ + 0.1, 0);
+            createCleanSign(0, 3.8, backWallZ - 0.1, Math.PI);
         }
 
         function setupExitDoor() {
             const doorGroup = new THREE.Group();
-            doorGroup.position.set(0, 0, 17.85);
+            doorGroup.position.set(0, 0, frontZ);
 
             const frameMat = new THREE.MeshStandardMaterial({ color: 0x151221, roughness: 0.4, metalness: 0.8 });
             const frameL = new THREE.Mesh(new THREE.BoxGeometry(0.12, 2.6, 0.15), frameMat);
@@ -461,12 +466,12 @@
                 new THREE.PlaneGeometry(1.6, 0.45),
                 new THREE.MeshBasicMaterial({ map: exitTex })
             );
-            signMesh.position.set(0, 2.9, -0.01);
-            signMesh.rotation.y = Math.PI;
+            signMesh.position.set(0, 2.9, 0.01);
+            signMesh.rotation.y = 0;
             doorGroup.add(signMesh);
 
             const exitLight = new THREE.PointLight(0xff0055, 1.4, 6);
-            exitLight.position.set(0, 2.7, -0.4);
+            exitLight.position.set(0, 2.7, 0.4);
             doorGroup.add(exitLight);
 
             scene.add(doorGroup);
@@ -514,7 +519,8 @@
             const secretWallMat = new THREE.MeshStandardMaterial({ map: paperTex, roughness: 0.7 });
 
             const secretBack = new THREE.Mesh(new THREE.PlaneGeometry(9, 4.2), secretWallMat);
-            secretBack.position.set(-6.5, 2.1, secretRoomZ - 6);
+            secretBack.position.set(-6.5, 2.1, secretRoomZ + 6);
+            secretBack.rotation.y = Math.PI;
             scene.add(secretBack);
 
             const secretLeft = new THREE.Mesh(new THREE.PlaneGeometry(12, 4.2), secretWallMat);
@@ -560,7 +566,7 @@
                 const row = Math.floor(index / 2);
 
                 const posX = isLeft ? -5.5 : 5.5;
-                const posZ = firstRowZ - (row * rowSpacing);
+                const posZ = firstRowZ + (row * rowSpacing);
                 const rotY = isLeft ? Math.PI / 2.4 : -Math.PI / 2.4;
 
                 const cabinetData = createRealisticCabinetMesh(data, false);
@@ -587,13 +593,13 @@
 
         function buildSecretCabinet() {
             const posX = -6.5;
-            const posZ = secretRoomZ - 3.5;
+            const posZ = secretRoomZ + 2.5;
 
             const cabinetData = createRealisticCabinetMesh(SECRET_CABINET_CONFIG, true);
             const group = cabinetData.group;
 
             group.position.set(posX, 0, posZ);
-            group.rotation.y = 0;
+            group.rotation.y = Math.PI;
             scene.add(group);
 
             arcadeCabinets.push({
@@ -1083,29 +1089,29 @@
                 let validX = nextX;
                 let validZ = nextZ;
 
-                if (validZ < backWallZ + 0.5) {
+                if (validZ > frontZ - 0.5) {
                     if (validX < -11.0 + playerRadius) validX = -11.0 + playerRadius;
                     if (validX > -2.0 - playerRadius) validX = -2.0 - playerRadius;
-                    if (validZ < secretRoomZ - 6.0 + playerRadius) validZ = secretRoomZ - 6.0 + playerRadius;
+                    if (validZ > secretRoomZ + 6.0 - playerRadius) validZ = secretRoomZ + 6.0 - playerRadius;
                 } else {
                     if (validX < -7.5 + playerRadius) validX = -7.5 + playerRadius;
                     if (validX > 7.5 - playerRadius) validX = 7.5 - playerRadius;
 
                     const atDoorway = Math.abs(validX) < 0.75;
-                    const maxZBoundary = (exitDoor.isOpen && atDoorway) ? 19.0 : (18.0 - playerRadius);
+                    const minZBoundary = (exitDoor.isOpen && atDoorway) ? (frontZ - 1.2) : (frontZ - playerRadius);
 
-                    if (validZ > maxZBoundary) {
-                        validZ = maxZBoundary;
+                    if (validZ < minZBoundary) {
+                        validZ = minZBoundary;
                     }
 
-                    if (exitDoor.isOpen && validZ > 17.6 && atDoorway) {
+                    if (exitDoor.isOpen && validZ < frontZ - 0.2 && atDoorway) {
                         exitGame();
                         return;
                     }
 
                     const isFacingPortal = (validX >= -7.0 && validX <= -4.5);
-                    if (!isFacingPortal && validZ < backWallZ + playerRadius) {
-                        validZ = backWallZ + playerRadius;
+                    if (!isFacingPortal && validZ > backWallZ - playerRadius) {
+                        validZ = backWallZ - playerRadius;
                     }
                 }
 
@@ -1227,7 +1233,7 @@
             if (targetInteractable) {
                 if (targetInteractable.isExit) {
                     exitDoor.isOpen = !exitDoor.isOpen;
-                    exitDoor.targetRotation = exitDoor.isOpen ? Math.PI * 0.52 : 0;
+                    exitDoor.targetRotation = exitDoor.isOpen ? -Math.PI * 0.52 : 0;
                     playSynthBeep(exitDoor.isOpen ? 520 : 380, 0.15, 'triangle', 0.15);
                     showExitDoorHUD();
                 } else if (targetInteractable.config) {
