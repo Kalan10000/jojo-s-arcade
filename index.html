@@ -19,9 +19,6 @@
     <!-- Three.js 3D Engine -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
-    <!-- Arcade Auth Manager -->
-    <script src="auth.js"></script>
-
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -67,8 +64,6 @@
             <span class="text-cyan-300 font-bold">CLICK SCENE TO CONTROL</span>
             <span class="text-slate-600">|</span>
             <span class="text-slate-300"><i class="fa-solid fa-keyboard mr-1"></i> WASD to walk</span>
-            <span class="text-slate-600">|</span>
-            <span id="user-status-text" class="text-pink-400 font-bold">NOT LOGGED IN</span>
         </div>
     </div>
 
@@ -82,67 +77,6 @@
         <div id="hud-button-badge" class="inline-flex items-center space-x-2 bg-pink-600/40 px-3.5 py-1 rounded-lg border border-pink-500/50 text-pink-200 text-[11px] font-orbitron">
             <i class="fa-solid fa-arrow-pointer text-xs"></i>
             <span id="hud-action-text">CLICK OR PRESS [E] TO LAUNCH</span>
-        </div>
-    </div>
-
-    <!-- CONNECTIONS & HIGH SCORES MODAL OVERLAY -->
-    <div id="auth-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md opacity-0 pointer-events-none transition-opacity duration-300">
-        <div class="glass-panel w-full max-w-md p-6 rounded-2xl border border-cyan-500/40 shadow-2xl relative">
-            <button onclick="closeAuthModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white text-lg">
-                <i class="fa-solid fa-xmark"></i>
-            </button>
-
-            <!-- Navigation Tabs -->
-            <div class="flex border-b border-slate-700 mb-5 font-orbitron text-xs">
-                <button id="tab-btn-login" onclick="switchAuthTab('login')" class="flex-1 py-2 text-center text-cyan-400 border-b-2 border-cyan-400 font-bold">LOGIN</button>
-                <button id="tab-btn-register" onclick="switchAuthTab('register')" class="flex-1 py-2 text-center text-slate-400 hover:text-white">REGISTER</button>
-                <button id="tab-btn-scores" onclick="switchAuthTab('scores')" class="flex-1 py-2 text-center text-slate-400 hover:text-white">HIGH SCORES</button>
-            </div>
-
-            <!-- Login View -->
-            <div id="view-login" class="space-y-4">
-                <h2 class="font-orbitron font-extrabold text-lg text-white mb-1"><i class="fa-solid fa-right-to-bracket text-cyan-400 mr-2"></i>USER LOGIN</h2>
-                <div id="login-error" class="hidden text-xs text-pink-400 bg-pink-950/40 p-2.5 rounded-lg border border-pink-800/50"></div>
-                <div>
-                    <label class="block text-[11px] font-orbitron text-slate-300 mb-1">USERNAME</label>
-                    <input type="text" id="login-username" class="w-full bg-slate-900/80 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-400">
-                </div>
-                <div>
-                    <label class="block text-[11px] font-orbitron text-slate-300 mb-1">PASSWORD</label>
-                    <input type="password" id="login-password" class="w-full bg-slate-900/80 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-400">
-                </div>
-                <button onclick="handleLogin()" class="w-full py-2.5 bg-cyan-600 hover:bg-cyan-500 font-orbitron font-bold text-xs rounded-lg transition text-white shadow-lg shadow-cyan-600/30">
-                    CONNECT ACCOUNT
-                </button>
-            </div>
-
-            <!-- Register View -->
-            <div id="view-register" class="space-y-4 hidden">
-                <h2 class="font-orbitron font-extrabold text-lg text-white mb-1"><i class="fa-solid fa-user-plus text-pink-400 mr-2"></i>CREATE ACCOUNT</h2>
-                <div id="register-error" class="hidden text-xs text-pink-400 bg-pink-950/40 p-2.5 rounded-lg border border-pink-800/50"></div>
-                <div>
-                    <label class="block text-[11px] font-orbitron text-slate-300 mb-1">NEW USERNAME</label>
-                    <input type="text" id="reg-username" class="w-full bg-slate-900/80 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pink-500">
-                </div>
-                <div>
-                    <label class="block text-[11px] font-orbitron text-slate-300 mb-1">PASSWORD</label>
-                    <input type="password" id="reg-password" class="w-full bg-slate-900/80 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pink-500">
-                </div>
-                <button onclick="handleRegister()" class="w-full py-2.5 bg-pink-600 hover:bg-pink-500 font-orbitron font-bold text-xs rounded-lg transition text-white shadow-lg shadow-pink-600/30">
-                    REGISTER & CONNECT
-                </button>
-            </div>
-
-            <!-- High Scores View -->
-            <div id="view-scores" class="space-y-4 hidden">
-                <div class="flex justify-between items-center mb-2">
-                    <h2 class="font-orbitron font-extrabold text-lg text-amber-400"><i class="fa-solid fa-trophy mr-2"></i>YOUR HIGH SCORES</h2>
-                    <button onclick="handleLogout()" id="logout-btn" class="hidden text-[10px] font-orbitron px-2 py-1 bg-red-900/40 border border-red-700 hover:bg-red-800 text-red-300 rounded">LOGOUT</button>
-                </div>
-                <div id="high-scores-list" class="space-y-2 max-h-60 overflow-y-auto text-xs font-mono">
-                    <!-- Populated dynamically -->
-                </div>
-            </div>
         </div>
     </div>
 
@@ -161,8 +95,7 @@
             { id: 2, title: "NEON OVERDRIVE", category: "Neon overdrive", url: "https://neonoverdrive.vercel.app", color: "#39ff14" },
             { id: 3, title: "SPACIAL MASTER", category: "Spacial master", url: "https://spacialmaster.vercel.app", color: "#bf00ff" },
             { id: 4, title: "LA JUSTE COULEUR", category: "La juste couleur", url: "https://lajustecouleur.vercel.app", color: "#ffcc00" },
-            { id: 5, title: "CONNECTIONS", category: "Account & Scores", url: "#connections", color: "#ff00aa", isAuth: true },
-            { id: 6, title: "SANDWICH", category: "Simulateur de sandwich", url: "https://simulateursandwich.vercel.app", color: "#ff00aa" }
+            { id: 5, title: "SANDWICH", category: "Simulateur de sandwich", url: "https://simulateursandwich.vercel.app", color: "#ff00aa" }
         ];
 
         const SECRET_CABINET_CONFIG = {
@@ -174,25 +107,21 @@
             isSecret: true
         };
 
-        // Dynamic Hall Layout Calculations (Growing Forward / Positive Z Direction)
         const totalRows = Math.ceil(MAIN_ARCADE_CONFIGS.length / 2);
         const rowSpacing = 4.0;
         const firstRowZ = 3.0;
         const lastRowZ = firstRowZ + (totalRows - 1) * rowSpacing;
         
-        // Dynamically compute hall depth and boundaries
         const frontZ = lastRowZ + 4.0;
         const backWallZ = -1.0;
-        const secretRoomZ = -5.0; // Center of secret room (-1.0 to -9.0)
+        const secretRoomZ = -5.0;
         const hallCenterZ = (frontZ + backWallZ) / 2;
         const hallLength = frontZ - backWallZ + 2.0;
 
-        // Global Engine State
         let scene, camera, renderer;
         let arcadeCabinets = [];
         let raycaster, centerRayVector;
 
-        // Player Controls State
         let moveForward = false;
         let moveBackward = false;
         let moveLeft = false;
@@ -207,7 +136,6 @@
 
         let targetInteractable = null;
 
-        // Exit Door State
         let exitDoor = {
             group: null,
             pivotGroup: null,
@@ -219,7 +147,6 @@
         };
         let isExiting = false;
 
-        // Web Audio Synthesizer State
         let audioCtx = null;
         let isAudioPlaying = false;
         let synthTimer = null;
@@ -357,7 +284,6 @@
             ceiling.position.set(0, 5.2, hallCenterZ);
             scene.add(ceiling);
 
-            // Using solid BoxGeometry for seamless walls (with thickness to prevent see-through gaps)
             const wallMat = new THREE.MeshStandardMaterial({ color: 0x0f0b1a, roughness: 0.7 });
 
             const leftWall = new THREE.Mesh(new THREE.BoxGeometry(0.3, 5.2, hallLength), wallMat);
@@ -368,7 +294,6 @@
             rightWall.position.set(7.5, 2.6, hallCenterZ);
             scene.add(rightWall);
 
-            // Front wall sections (exit door area)
             const frontWallLeft = new THREE.Mesh(new THREE.BoxGeometry(6.6, 5.2, 0.3), wallMat);
             frontWallLeft.position.set(-4.2, 2.6, frontZ);
             scene.add(frontWallLeft);
@@ -381,30 +306,12 @@
             frontWallTop.position.set(0, 3.95, frontZ);
             scene.add(frontWallTop);
 
-            // Back wall sections & solid portal opening into secret room at Z = -1.0
+            // Back wall sections (with open walk-through partition into secret room)
             const backRightWall = new THREE.Mesh(new THREE.BoxGeometry(9.5, 5.2, 0.3), wallMat);
             backRightWall.position.set(2.75, 2.6, backWallZ);
             scene.add(backRightWall);
 
-            const backLeftWall = new THREE.Mesh(new THREE.BoxGeometry(3.0, 5.2, 0.3), wallMat);
-            backLeftWall.position.set(-6.0, 2.6, backWallZ);
-            scene.add(backLeftWall);
-
-            // Clean portal archway frame
-            const portalFrameMat = new THREE.MeshStandardMaterial({ color: 0x181026, roughness: 0.5, metalness: 0.4 });
-            const portalPillarL = new THREE.Mesh(new THREE.BoxGeometry(0.22, 4.2, 0.35), portalFrameMat);
-            portalPillarL.position.set(-4.5, 2.1, backWallZ);
-            scene.add(portalPillarL);
-
-            const portalPillarR = new THREE.Mesh(new THREE.BoxGeometry(0.22, 4.2, 0.35), portalFrameMat);
-            portalPillarR.position.set(-2.0, 2.1, backWallZ);
-            scene.add(portalPillarR);
-
-            const portalLintel = new THREE.Mesh(new THREE.BoxGeometry(2.74, 0.95, 0.35), portalFrameMat);
-            portalLintel.position.set(-3.25, 3.725, backWallZ);
-            scene.add(portalLintel);
-
-            createCleanSign(0, 3.8, backWallZ - 0.15, Math.PI);
+            createCleanSign(0, 3.8, backWallZ - 0.15, 0);
         }
 
         function setupExitDoor() {
@@ -518,7 +425,6 @@
 
             const secretWallMat = new THREE.MeshStandardMaterial({ map: paperTex, roughness: 0.7 });
 
-            // Solid BoxGeometry for secret room walls to ensure seamless junctions and zero gaps
             const secretBack = new THREE.Mesh(new THREE.BoxGeometry(9.0, 4.2, 0.3), secretWallMat);
             secretBack.position.set(-6.5, 2.1, -9.0);
             scene.add(secretBack);
@@ -783,68 +689,12 @@
 
                 if (config.isSecret) {
                     renderVintagePixelScreen(ctx, width, height, time, config);
-                } else if (config.isAuth) {
-                    renderConnectionsAuthScreen(ctx, width, height, time, config);
                 } else {
                     renderArcadeGameScreen(ctx, width, height, time, config);
                 }
 
                 cab.screenMesh.material.map.needsUpdate = true;
             });
-        }
-
-        function renderConnectionsAuthScreen(ctx, width, height, time, config) {
-            const loggedIn = window.arcadeAuth && window.arcadeAuth.currentUser;
-
-            ctx.fillStyle = '#06030c';
-            ctx.fillRect(0, 0, width, height);
-
-            ctx.strokeStyle = '#ff00aa';
-            ctx.lineWidth = 1;
-            ctx.globalAlpha = 0.3;
-            for (let i = 0; i < width; i += 24) {
-                ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, height); ctx.stroke();
-            }
-            for (let j = 0; j < height; j += 24) {
-                ctx.beginPath(); ctx.moveTo(0, j); ctx.lineTo(width, j); ctx.stroke();
-            }
-            ctx.globalAlpha = 1.0;
-
-            ctx.fillStyle = loggedIn ? '#00ffaa' : '#ff00aa';
-            ctx.beginPath();
-            ctx.arc(width / 2, height * 0.35, 36, 0, Math.PI * 2);
-            ctx.fill();
-
-            ctx.fillStyle = '#ffffff';
-            ctx.font = '800 28px "Orbitron", sans-serif';
-            ctx.textAlign = 'center';
-            ctx.fillText("CONNECTIONS", width / 2, height * 0.62);
-
-            if (loggedIn) {
-                ctx.fillStyle = '#00ffaa';
-                ctx.font = '600 14px "Orbitron", sans-serif';
-                ctx.fillText(`USER: ${window.arcadeAuth.currentUser.username.toUpperCase()}`, width / 2, height * 0.74);
-                
-                ctx.fillStyle = '#ffffff';
-                ctx.font = 'bold 12px "Orbitron", sans-serif';
-                ctx.fillText("▶ CLICK TO VIEW HIGH SCORES ◀", width / 2, height * 0.88);
-            } else {
-                ctx.fillStyle = '#ff00aa';
-                ctx.font = '600 14px "Orbitron", sans-serif';
-                ctx.fillText("AUTHENTICATION PORTAL", width / 2, height * 0.74);
-
-                const blink = Math.sin(time * 5) > 0;
-                if (blink) {
-                    ctx.fillStyle = '#ffffff';
-                    ctx.font = 'bold 12px "Orbitron", sans-serif';
-                    ctx.fillText("▶ CLICK TO CONNECT ACCOUNT ◀", width / 2, height * 0.88);
-                }
-            }
-
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
-            for (let y = 0; y < height; y += 4) {
-                ctx.fillRect(0, y, width, 2);
-            }
         }
 
         function renderArcadeGameScreen(ctx, width, height, time, config) {
@@ -1013,7 +863,7 @@
             const hintBanner = document.getElementById('click-hint-banner');
 
             document.addEventListener('click', (e) => {
-                if (e.target.closest('#btn-audio') || e.target.closest('#auth-modal') || isExiting) return;
+                if (e.target.closest('#btn-audio') || isExiting) return;
 
                 if (!isPointerLocked) {
                     document.body.requestPointerLock();
@@ -1067,24 +917,13 @@
         }
 
         function isWalkable(x, z) {
-            // Front exit door area
             if (z > frontZ - playerRadius) {
                 if (Math.abs(x) < 0.75 && exitDoor.isOpen) return true;
                 return false;
             }
 
-            // Main arcade hallway bounds
-            if (x >= -7.5 + playerRadius && x <= 7.5 - playerRadius && z >= backWallZ - playerRadius && z <= frontZ - playerRadius) {
-                return true;
-            }
-
-            // Secret room bounds (behind backWallZ at X: -11.0 to -2.0, Z: -9.0 to backWallZ)
-            if (x >= -11.0 + playerRadius && x <= -2.0 - playerRadius && z >= -9.0 + playerRadius && z <= backWallZ - playerRadius) {
-                return true;
-            }
-
-            // Portal connection opening between main hall and secret room
-            if (x >= -4.5 && x <= -2.0 && Math.abs(z - backWallZ) < 0.8) {
+            // Allow walking freely across the main hall and secret room combined
+            if (x >= -11.0 + playerRadius && x <= 7.5 - playerRadius && z >= -9.0 + playerRadius && z <= frontZ - playerRadius) {
                 return true;
             }
 
@@ -1109,7 +948,6 @@
                 const nextX = playerPos.x + moveDir.x * walkSpeed * delta;
                 const nextZ = playerPos.z + moveDir.z * walkSpeed * delta;
 
-                // Check X Axis movement
                 if (isWalkable(nextX, playerPos.z)) {
                     let hitCabinetX = false;
                     arcadeCabinets.forEach(cab => {
@@ -1123,7 +961,6 @@
                     }
                 }
 
-                // Check Z Axis movement
                 if (isWalkable(playerPos.x, nextZ)) {
                     let hitCabinetZ = false;
                     arcadeCabinets.forEach(cab => {
@@ -1137,7 +974,6 @@
                     }
                 }
 
-                // Check if player walked through open exit door
                 if (exitDoor.isOpen && playerPos.z > frontZ - 0.2 && Math.abs(playerPos.x) < 0.75) {
                     exitGame();
                     return;
@@ -1213,8 +1049,7 @@
             document.getElementById('hud-url').innerText = cabinet.config.url;
             document.getElementById('hud-category').innerText = cabinet.config.category;
             
-            const actionText = cabinet.config.isAuth ? "CLICK OR PRESS [E] FOR ACCOUNT & SCORES" : "CLICK OR PRESS [E] TO LAUNCH";
-            document.getElementById('hud-action-text').innerText = actionText;
+            document.getElementById('hud-action-text').innerText = "CLICK OR PRESS [E] TO LAUNCH";
 
             prompt.style.opacity = '1';
             prompt.style.transform = 'translate(-50%, 0) scale(1)';
@@ -1250,14 +1085,9 @@
                     exitDoor.targetRotation = exitDoor.isOpen ? -Math.PI * 0.52 : 0;
                     playSynthBeep(exitDoor.isOpen ? 520 : 380, 0.15, 'triangle', 0.15);
                     showExitDoorHUD();
-                } else if (targetInteractable.config) {
-                    if (targetInteractable.config.isAuth) {
-                        playSynthBeep(750, 0.1, 'sine', 0.1);
-                        openAuthModal();
-                    } else if (targetInteractable.config.url) {
-                        playSynthBeep(880, 0.15, 'triangle', 0.2);
-                        window.location.href = targetInteractable.config.url;
-                    }
+                } else if (targetInteractable.config && targetInteractable.config.url) {
+                    playSynthBeep(880, 0.15, 'triangle', 0.2);
+                    window.location.href = targetInteractable.config.url;
                 }
             }
         }
@@ -1304,160 +1134,6 @@
             `;
         }
 
-        /* --- Auth & High Scores UI Modal Logic --- */
-        function openAuthModal() {
-            if (document.pointerLockElement) {
-                document.exitPointerLock();
-            }
-            const modal = document.getElementById('auth-modal');
-            modal.classList.remove('pointer-events-none', 'opacity-0');
-            modal.classList.add('opacity-100');
-
-            if (window.arcadeAuth && window.arcadeAuth.currentUser) {
-                switchAuthTab('scores');
-            } else {
-                switchAuthTab('login');
-            }
-        }
-
-        function closeAuthModal() {
-            const modal = document.getElementById('auth-modal');
-            modal.classList.add('pointer-events-none', 'opacity-0');
-            modal.classList.remove('opacity-100');
-        }
-
-        function switchAuthTab(tab) {
-            const vLogin = document.getElementById('view-login');
-            const vRegister = document.getElementById('view-register');
-            const vScores = document.getElementById('view-scores');
-
-            const btnLogin = document.getElementById('tab-btn-login');
-            const btnRegister = document.getElementById('tab-btn-register');
-            const btnScores = document.getElementById('tab-btn-scores');
-
-            [vLogin, vRegister, vScores].forEach(v => v.classList.add('hidden'));
-            [btnLogin, btnRegister, btnScores].forEach(b => {
-                b.className = 'flex-1 py-2 text-center text-slate-400 hover:text-white';
-            });
-
-            if (tab === 'login') {
-                vLogin.classList.remove('hidden');
-                btnLogin.className = 'flex-1 py-2 text-center text-cyan-400 border-b-2 border-cyan-400 font-bold';
-            } else if (tab === 'register') {
-                vRegister.classList.remove('hidden');
-                btnRegister.className = 'flex-1 py-2 text-center text-pink-400 border-b-2 border-pink-400 font-bold';
-            } else if (tab === 'scores') {
-                vScores.classList.remove('hidden');
-                btnScores.className = 'flex-1 py-2 text-center text-amber-400 border-b-2 border-amber-400 font-bold';
-                renderScoresList();
-            }
-        }
-
-        function handleLogin() {
-            const u = document.getElementById('login-username').value;
-            const p = document.getElementById('login-password').value;
-            const errEl = document.getElementById('login-error');
-
-            const res = window.arcadeAuth.login(u, p);
-            if (res.success) {
-                errEl.classList.add('hidden');
-                updateAuthStatusBadge();
-                switchAuthTab('scores');
-            } else {
-                errEl.innerText = res.message;
-                errEl.classList.remove('hidden');
-            }
-        }
-
-        function handleRegister() {
-            const u = document.getElementById('reg-username').value;
-            const p = document.getElementById('reg-password').value;
-            const errEl = document.getElementById('register-error');
-
-            const res = window.arcadeAuth.register(u, p);
-            if (res.success) {
-                errEl.classList.add('hidden');
-                updateAuthStatusBadge();
-                switchAuthTab('scores');
-            } else {
-                errEl.innerText = res.message;
-                errEl.classList.remove('hidden');
-            }
-        }
-
-        function handleLogout() {
-            window.arcadeAuth.logout();
-            updateAuthStatusBadge();
-            switchAuthTab('login');
-        }
-
-        function updateAuthStatusBadge() {
-            const statusEl = document.getElementById('user-status-text');
-            if (window.arcadeAuth && window.arcadeAuth.currentUser) {
-                statusEl.innerText = `USER: ${window.arcadeAuth.currentUser.username.toUpperCase()}`;
-                statusEl.className = 'text-emerald-400 font-bold';
-            } else {
-                statusEl.innerText = 'NOT LOGGED IN';
-                statusEl.className = 'text-pink-400 font-bold';
-            }
-        }
-
-        function renderScoresList() {
-            const listEl = document.getElementById('high-scores-list');
-            const logoutBtn = document.getElementById('logout-btn');
-            const currentUser = window.arcadeAuth ? window.arcadeAuth.currentUser : null;
-
-            if (!currentUser) {
-                logoutBtn.classList.add('hidden');
-                listEl.innerHTML = `
-                    <div class="p-4 text-center text-slate-400 bg-slate-900/50 rounded-lg">
-                        Please login or register to track your game scores.
-                    </div>
-                `;
-                return;
-            }
-
-            logoutBtn.classList.remove('hidden');
-            const scores = window.arcadeAuth.getUserHighScores();
-
-            let html = '';
-            MAIN_ARCADE_CONFIGS.forEach(cab => {
-                if (cab.isAuth) return;
-                const score = scores[cab.id] || 0;
-                html += `
-                    <div class="flex justify-between items-center p-2.5 bg-slate-900/70 border border-slate-800 rounded-lg">
-                        <span class="text-slate-200 font-bold">${cab.title}</span>
-                        <span class="text-cyan-400 font-orbitron font-bold">${score} PTS</span>
-                    </div>
-                `;
-            });
-
-            listEl.innerHTML = html;
-        }
-
-        function checkURLScoreReturn() {
-            const params = new URLSearchParams(window.location.search);
-            const gameIdParam = params.get('gameId');
-            const scoreParam = params.get('score');
-
-            if (gameIdParam !== null && scoreParam !== null) {
-                const gameId = parseInt(gameIdParam, 10);
-                const score = parseInt(scoreParam, 10);
-
-                if (!isNaN(gameId) && !isNaN(score) && window.arcadeAuth && window.arcadeAuth.currentUser) {
-                    const isNewRecord = window.arcadeAuth.updateScore(gameId, score);
-                    if (isNewRecord) {
-                        setTimeout(() => {
-                            openAuthModal();
-                            switchAuthTab('scores');
-                            alert(`New High Score Recorded: ${score} PTS!`);
-                        }, 500);
-                    }
-                }
-                window.history.replaceState({}, document.title, window.location.pathname);
-            }
-        }
-
         const clock = new THREE.Clock();
 
         function animate() {
@@ -1496,8 +1172,6 @@
 
         window.onload = () => {
             init3DScene();
-            updateAuthStatusBadge();
-            checkURLScoreReturn();
         };
     </script>
 </body>
