@@ -16,7 +16,7 @@
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- Three.js Library -->
+    <!-- Three.js 3D Engine -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
     <style>
@@ -31,7 +31,7 @@
             font-family: 'Orbitron', sans-serif;
         }
 
-        /* Neon Glow Utility Classes */
+        /* Neon Glow Styling Utilities */
         .neon-text-pink {
             text-shadow: 0 0 5px #ff007f, 0 0 10px #ff007f, 0 0 20px #ff007f, 0 0 40px #ff007f;
         }
@@ -47,7 +47,7 @@
             border-color: #00f0ff;
         }
 
-        /* Glassmorphism Styling */
+        /* Glassmorphism Panels */
         .glass-panel {
             background: rgba(10, 5, 24, 0.85);
             backdrop-filter: blur(14px);
@@ -55,7 +55,7 @@
             border: 1px solid rgba(255, 255, 255, 0.15);
         }
 
-        /* CRT Scanline Texture Overlay */
+        /* CRT Scanlines Overlay */
         .scanlines {
             background: linear-gradient(
                 rgba(18, 16, 16, 0) 50%, 
@@ -64,15 +64,15 @@
             background-size: 100% 4px;
         }
 
-        /* Reticle Pulse Animation */
+        /* Crosshair Lock Animation */
         @keyframes reticlePulse {
             0% { transform: translate(-50%, -50%) scale(1); opacity: 0.85; }
-            50% { transform: translate(-50%, -50%) scale(1.3); opacity: 1; }
+            50% { transform: translate(-50%, -50%) scale(1.35); opacity: 1; }
             100% { transform: translate(-50%, -50%) scale(1); opacity: 0.85; }
         }
 
         .reticle-active {
-            animation: reticlePulse 1.1s infinite ease-in-out;
+            animation: reticlePulse 1.0s infinite ease-in-out;
             background-color: #00f0ff !important;
             box-shadow: 0 0 14px #00f0ff, 0 0 28px #00f0ff !important;
         }
@@ -80,20 +80,20 @@
 </head>
 <body class="h-full w-full relative overflow-hidden bg-black select-none">
 
-    <!-- 3D Canvas Container -->
+    <!-- 3D Canvas Viewport -->
     <div id="canvas-container" class="absolute inset-0 w-full h-full z-0 cursor-crosshair"></div>
 
-    <!-- Retro CRT Scanline Overlay -->
+    <!-- Retro CRT Scanline Texture Overlay -->
     <div class="pointer-events-none absolute inset-0 z-10 scanlines opacity-30"></div>
 
-    <!-- FPS Center Crosshair Reticle -->
+    <!-- FPS Center Reticle Crosshair -->
     <div id="crosshair" class="pointer-events-none fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 w-3.5 h-3.5 rounded-full border-2 border-cyan-400 bg-cyan-400/30 transition-all duration-150"></div>
 
-    <!-- Minimal Floating Controls Hint Banner -->
+    <!-- Minimal Controls Hint Banner -->
     <div id="click-hint-banner" class="fixed top-6 left-1/2 -translate-x-1/2 z-30 pointer-events-none transition-opacity duration-500">
         <div class="glass-panel px-6 py-2.5 rounded-2xl border border-pink-500/50 shadow-2xl shadow-pink-500/20 flex items-center space-x-3 text-xs md:text-sm font-orbitron">
             <span class="w-2.5 h-2.5 rounded-full bg-pink-500 animate-ping"></span>
-            <span class="text-pink-300 font-bold">CLICK ANYWHERE TO LOOK & WALK</span>
+            <span class="text-pink-300 font-bold">CLICK SCENE TO LOOK & WALK</span>
             <span class="text-slate-500">|</span>
             <span class="text-cyan-300"><i class="fa-solid fa-keyboard mr-1"></i> WASD to move</span>
             <span class="text-slate-500">|</span>
@@ -101,7 +101,7 @@
         </div>
     </div>
 
-    <!-- HUD TARGET PROMPT (Appears when looking at an arcade cabinet) -->
+    <!-- TARGET HUD PROMPT (Appears when aiming at an arcade cabinet) -->
     <div id="hud-prompt" class="pointer-events-none fixed top-1/2 left-1/2 -translate-x-1/2 translate-y-10 z-30 opacity-0 transition-all duration-300 transform scale-95 glass-panel px-6 py-3 rounded-2xl border border-cyan-400/60 shadow-2xl shadow-cyan-500/30 text-center">
         <div class="flex items-center justify-center space-x-2 mb-1">
             <span id="hud-category" class="px-2.5 py-0.5 rounded-full text-[10px] font-orbitron uppercase tracking-widest bg-pink-500/20 text-pink-300 border border-pink-500/40">CATEGORY</span>
@@ -110,11 +110,11 @@
         <p id="hud-url" class="text-xs font-mono text-cyan-300 truncate max-w-xs mb-2">https://example.com</p>
         <div id="hud-button-badge" class="inline-flex items-center space-x-2 bg-pink-600/30 px-3 py-1 rounded-xl border border-pink-500/50 text-pink-300 text-[11px] font-orbitron animate-pulse">
             <i class="fa-solid fa-arrow-pointer"></i>
-            <span>CLICK OR PRESS [E] TO LAUNCH</span>
+            <span>CLICK OR PRESS [E] TO ENTER</span>
         </div>
     </div>
 
-    <!-- Synthwave Audio Toggle Button -->
+    <!-- Synthwave Music Toggle Button -->
     <div class="fixed bottom-5 right-5 z-30">
         <button id="btn-audio" onclick="toggleAudio()" class="p-3.5 rounded-2xl glass-panel text-slate-300 hover:text-cyan-400 border border-slate-700/80 hover:border-cyan-400/60 transition shadow-xl flex items-center space-x-2 text-xs font-orbitron">
             <i id="audio-icon" class="fa-solid fa-volume-xmark text-pink-500 text-base"></i>
@@ -124,18 +124,18 @@
 
     <script>
         // ====================================================================
-        // 1. CONFIGURABLE ARCADE CABINETS ARRAY (EASILY ADD/EDIT URLS HERE)
+        // 1. ARCADE CABINETS CONFIGURATION ARRAY
         // ====================================================================
         const ARCADE_CONFIGS = [
-            { id: 0, title: "LABYRYNTHE", category: "Action Arcade", url: "https://labyrintheajojo.vercel.app", color: "#ff0055" },
-            { id: 1, title: "NEON WAVE", category: "Rhythm Racer", url: "https://example.com/neon-wave", color: "#00f3ff" },
-            { id: 2, title: "ASTRO SHIELD", category: "Space Shooter", url: "https://example.com/astro-shield", color: "#39ff14" },
-            { id: 3, title: "SYNTH GRID", category: "Puzzle Matrix", url: "https://example.com/synth-grid", color: "#bf00ff" },
-            { id: 4, title: "VOCO BLASTER", category: "Retro Shooter", url: "https://example.com/voco-blaster", color: "#ffcc00" },
-            { id: 5, title: "PONG ODYSSEY", category: "Classic Physics", url: "https://example.com/pong-odyssey", color: "#ff00aa" }
+            { id: 0, title: "LABYRINTHE", category: "3D Labyrinth", url: "https://labyrintheajojo.vercel.app/", color: "#ff0055" },
+            { id: 1, title: "CYBER QUEST", category: "Sci-Fi RPG", url: "https://example.com/cyber-quest", color: "#00f3ff" },
+            { id: 2, title: "NEON BLASTER", category: "Space Shooter", url: "https://example.com/neon-blaster", color: "#39ff14" },
+            { id: 3, title: "SYNTH WAVE", category: "Rhythm Racer", url: "https://example.com/synth-wave", color: "#bf00ff" },
+            { id: 4, title: "GALACTIC SHIFT", category: "Puzzle Matrix", url: "https://example.com/galactic-shift", color: "#ffcc00" },
+            { id: 5, title: "HYPER GRID", category: "Cyber Combat", url: "https://example.com/hyper-grid", color: "#ff00aa" }
         ];
 
-        // Global Scene & Engine Variables
+        // Global Scene Engine Variables
         let scene, camera, renderer;
         let arcadeCabinets = [];
         let raycaster, centerRayVector;
@@ -147,7 +147,7 @@
         let moveRight = false;
         let isPointerLocked = false;
 
-        // Yaw = 0 faces down -Z (180 degrees into arcade hall toward back wall)
+        // Yaw = 0 faces down -Z (180 degrees into arcade hall towards back wall)
         let pitch = 0;
         let yaw = 0; 
         const playerPos = new THREE.Vector3(0, 1.7, 12); // Player spawn position
@@ -185,14 +185,14 @@
                 gain.connect(audioCtx.destination);
                 osc.start();
                 osc.stop(audioCtx.currentTime + duration);
-            } catch (e) { console.error("Audio error:", e); }
+            } catch (e) { console.error("Audio playback error:", e); }
         }
 
         function playCoinSound() {
             if (!audioCtx) initAudio();
             if (audioCtx.state === 'suspended') audioCtx.resume();
-            playSynthBeep(987.77, 0.08, 'sine', 0.2); // B5
-            setTimeout(() => playSynthBeep(1318.51, 0.25, 'triangle', 0.25), 80); // E6
+            playSynthBeep(987.77, 0.08, 'sine', 0.2);
+            setTimeout(() => playSynthBeep(1318.51, 0.25, 'triangle', 0.25), 80);
         }
 
         function playFootstepSound() {
@@ -221,7 +221,7 @@
 
         function startSynthwaveTrack() {
             if (!audioCtx) return;
-            const notes = [110, 110, 130.81, 110, 146.83, 130.81, 98, 110]; // Bassline notes
+            const notes = [110, 110, 130.81, 110, 146.83, 130.81, 98, 110];
             let step = 0;
             
             synthArpTimer = setInterval(() => {
@@ -254,11 +254,11 @@
             camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 100);
             camera.position.copy(playerPos);
 
-            // Yaw = 0 points facing into the room towards back wall (-Z)
+            // Yaw = 0 faces down the hall towards -Z
             const euler = new THREE.Euler(pitch, yaw, 0, 'YXZ');
             camera.quaternion.setFromEuler(euler);
 
-            // Renderer setup
+            // WebGL Renderer setup
             renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
             renderer.setSize(window.innerWidth, window.innerHeight);
@@ -268,15 +268,15 @@
             renderer.shadowMap.type = THREE.PCFSoftShadowMap;
             container.appendChild(renderer.domElement);
 
-            // Raycaster for targeting center of screen
+            // Center Crosshair Raycaster
             raycaster = new THREE.Raycaster();
             centerRayVector = new THREE.Vector2(0, 0);
 
-            // Environment Lighting & Architecture
+            // Lighting & Room Architecture
             setupLighting();
             setupArcadeRoomEnvironment();
 
-            // Build Cabinets based on ARCADE_CONFIGS array
+            // Build Arcade Cabinets
             buildArcadeHallCabinets();
 
             // FPS Controls & Pointer Lock
@@ -285,7 +285,7 @@
             // Window Resize listener
             window.addEventListener('resize', onWindowResize);
 
-            // Start animation loop immediately
+            // Start Animation Loop
             animate();
         }
 
@@ -303,7 +303,7 @@
         }
 
         function setupArcadeRoomEnvironment() {
-            // 1. Reflective Neon Floor Grid
+            // Reflective Neon Grid Floor
             const floorGeo = new THREE.PlaneGeometry(24, 40);
 
             const gridCanvas = document.createElement('canvas');
@@ -341,7 +341,7 @@
             floor.position.set(0, 0, 0);
             scene.add(floor);
 
-            // 2. Ceiling
+            // Ceiling
             const ceilingMat = new THREE.MeshStandardMaterial({ color: 0x080414, roughness: 0.8 });
             const ceiling = new THREE.Mesh(floorGeo, ceilingMat);
             ceiling.rotation.x = Math.PI / 2;
@@ -357,7 +357,7 @@
                 scene.add(beam);
             }
 
-            // 3. Walls
+            // Hall Walls
             const wallMat = new THREE.MeshStandardMaterial({ color: 0x0a0518, roughness: 0.6 });
             
             // Left Wall
@@ -377,13 +377,13 @@
             backWall.position.set(0, 3.25, -20);
             scene.add(backWall);
 
-            // Front Entrance Wall
+            // Entrance Wall
             const frontWall = new THREE.Mesh(new THREE.PlaneGeometry(20, 6.5), wallMat);
             frontWall.position.set(0, 3.25, 20);
             frontWall.rotation.y = Math.PI;
             scene.add(frontWall);
 
-            // Wall Neon Horizontal Trims
+            // Wall Neon Trims
             const wallTrimGeo = new THREE.BoxGeometry(0.1, 0.1, 40);
             const wallTrimLeft = new THREE.Mesh(wallTrimGeo, new THREE.MeshBasicMaterial({ color: 0x00f0ff }));
             wallTrimLeft.position.set(-9.9, 3.5, 0);
@@ -393,7 +393,7 @@
             wallTrimRight.position.set(9.9, 3.5, 0);
             scene.add(wallTrimRight);
 
-            // Back Wall Neon Sign: "JOJO'S ARCADE"
+            // Back & Front "JOJO'S ARCADE" Neon Signs
             createNeonSign(0, 4.2, -19.9, 0);
             createNeonSign(0, 4.2, 19.9, Math.PI);
         }
@@ -451,7 +451,7 @@
 
                 scene.add(group);
 
-                // Dedicated light source in cabinet's custom neon color
+                // Dedicated light source in cabinet's neon color
                 const colorHex = parseInt(data.color.replace('#', '0x'));
                 const cabLight = new THREE.PointLight(colorHex, 1.6, 6);
                 cabLight.position.set(posX, 2.2, posZ);
@@ -482,13 +482,13 @@
             const sidePanelMat = new THREE.MeshStandardMaterial({ color: 0x1a1230, roughness: 0.3 });
             const neonMat = new THREE.MeshStandardMaterial({ color: mainColorHex, emissive: mainColorHex, emissiveIntensity: 0.8 });
 
-            // Base Cabinet Body
+            // Base Cabinet Geometry
             const baseGeo = new THREE.BoxGeometry(1.4, 2.2, 1.2);
             const baseMesh = new THREE.Mesh(baseGeo, bodyMat);
             baseMesh.position.y = 1.1;
             group.add(baseMesh);
 
-            // Side Panel Extrusions
+            // Side Panel Profile
             const sideShape = new THREE.Shape();
             sideShape.moveTo(0, 0);
             sideShape.lineTo(0, 3.2);
@@ -509,7 +509,7 @@
             rightSide.position.set(0.68, 0, -0.6);
             group.add(rightSide);
 
-            // Neon Side Trim Lines
+            // Neon Side Trims
             const trimGeo = new THREE.BoxGeometry(0.04, 3.2, 0.04);
             const trimL = new THREE.Mesh(trimGeo, neonMat);
             trimL.position.set(-0.74, 1.6, 0.88);
@@ -519,13 +519,13 @@
             trimR.position.set(0.74, 1.6, 0.88);
             group.add(trimR);
 
-            // CRT Screen Housing
+            // CRT Screen Housing Frame
             const screenFrame = new THREE.Mesh(new THREE.BoxGeometry(1.28, 1.1, 0.1), bodyMat);
             screenFrame.position.set(0, 2.2, 0.25);
             screenFrame.rotation.x = -0.22;
             group.add(screenFrame);
 
-            // CRT Screen Canvas Mesh
+            // Dynamic Screen Texture Canvas
             const screenCanvas = document.createElement('canvas');
             screenCanvas.width = 512;
             screenCanvas.height = 384;
@@ -539,11 +539,11 @@
             screenMesh.rotation.x = -0.22;
             group.add(screenMesh);
 
-            // Attach Metadata for Raycasting Target
+            // UserData Metadata for Raycaster target mapping
             screenMesh.userData = { cabinetId: data.id };
             baseMesh.userData = { cabinetId: data.id };
 
-            // Illuminated Marquee Header
+            // Illuminated Marquee Banner
             const marqueeCanvas = document.createElement('canvas');
             marqueeCanvas.width = 512;
             marqueeCanvas.height = 128;
@@ -585,7 +585,7 @@
             stickGroup.position.set(-0.35, 1.55, 0.55);
             group.add(stickGroup);
 
-            // Illuminated Buttons
+            // Illuminated Control Buttons
             const btnColors = [0xff0055, 0x00f0ff, 0xffe600, 0x39ff14];
             for (let b = 0; b < 4; b++) {
                 const btnMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.03, 16), new THREE.MeshStandardMaterial({
@@ -622,7 +622,7 @@
                 const height = 384;
                 const config = cab.config;
 
-                // Render ONE unified animation loop dynamically adapted to cabinet's theme color
+                // Render single unified animation style dynamically adapting to cabinet theme color
                 renderAdaptiveArcadeScreen(ctx, width, height, time, config);
 
                 cab.screenMesh.material.map.needsUpdate = true;
@@ -632,7 +632,7 @@
         function renderAdaptiveArcadeScreen(ctx, width, height, time, config) {
             const primaryColor = config.color || '#ff007f';
 
-            // Dark Synth Backdrop
+            // Dark Backdrop
             ctx.fillStyle = '#04010a';
             ctx.fillRect(0, 0, width, height);
 
@@ -643,7 +643,6 @@
             ctx.globalAlpha = 0.45;
             const horizon = height * 0.52;
 
-            // Perspective lines
             for (let x = -width; x <= width * 2; x += 35) {
                 ctx.beginPath();
                 ctx.moveTo(width / 2, horizon);
@@ -651,7 +650,6 @@
                 ctx.stroke();
             }
 
-            // Horizontal moving grid lines
             const gridOffset = (time * 65) % 20;
             for (let y = horizon; y < height; y += 12) {
                 const drawY = y + gridOffset;
@@ -664,7 +662,7 @@
             }
             ctx.restore();
 
-            // 2. Animated Audio Wave Visualizer Line in Primary Theme Color
+            // 2. Animated Audio Wave Visualizer
             ctx.save();
             ctx.strokeStyle = primaryColor;
             ctx.shadowColor = primaryColor;
@@ -681,7 +679,7 @@
             }
             ctx.stroke();
 
-            // Secondary White Overlay Wave Line
+            // Overlay Synth Line
             ctx.strokeStyle = '#ffffff';
             ctx.lineWidth = 1.2;
             ctx.beginPath();
@@ -694,7 +692,7 @@
             ctx.stroke();
             ctx.restore();
 
-            // 3. Glowing Synth Sun / Emblem behind Title
+            // 3. Glowing Synth Emblem
             ctx.save();
             ctx.beginPath();
             ctx.arc(width / 2, height * 0.3, 36, 0, Math.PI * 2);
@@ -719,7 +717,7 @@
             ctx.fillText(config.category.toUpperCase(), width / 2, height * 0.80);
             ctx.restore();
 
-            // 5. Pulsing "CLICK TO LAUNCH PORTAL" Prompt
+            // 5. Pulsing Prompt
             ctx.save();
             const pulseAlpha = 0.45 + Math.sin(time * 6) * 0.45;
             ctx.globalAlpha = Math.max(0.1, pulseAlpha);
@@ -729,7 +727,7 @@
             ctx.fillText("▶ CLICK TO LAUNCH PORTAL ◀", width / 2, height * 0.91);
             ctx.restore();
 
-            // 6. Scanlines Filter Overlay
+            // 6. CRT Scanline Grid Lines
             ctx.save();
             ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
             for (let y = 0; y < height; y += 4) {
@@ -744,7 +742,7 @@
         function setupFPSControls() {
             const hintBanner = document.getElementById('click-hint-banner');
 
-            // Seamless click anywhere to lock pointer & initialize audio
+            // Click anywhere to lock pointer & resume Web Audio
             document.addEventListener('click', (e) => {
                 if (e.target.closest('#btn-audio')) return;
 
@@ -775,11 +773,10 @@
                 yaw -= e.movementX * sensitivity;
                 pitch -= e.movementY * sensitivity;
 
-                // Clamp pitch up/down look angles
                 pitch = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, pitch));
             });
 
-            // WASD Keyboard Movement
+            // Keyboard Movement
             document.addEventListener('keydown', (e) => {
                 switch (e.code) {
                     case 'KeyW': case 'ArrowUp': moveForward = true; break;
@@ -805,7 +802,6 @@
 
             const moveDir = new THREE.Vector3();
             
-            // Forward/Right vectors based on camera orientation
             const front = new THREE.Vector3(-Math.sin(yaw), 0, -Math.cos(yaw)).normalize();
             const right = new THREE.Vector3(Math.cos(yaw), 0, -Math.sin(yaw)).normalize();
 
@@ -817,7 +813,7 @@
             if (moveDir.lengthSq() > 0) {
                 moveDir.normalize();
 
-                // Step sound effect
+                // Step SFX
                 stepSoundCooldown -= delta;
                 if (stepSoundCooldown <= 0) {
                     playFootstepSound();
@@ -836,7 +832,7 @@
                 if (validZ < -18.5 + playerRadius) validZ = -18.5 + playerRadius;
                 if (validZ > 18.5 - playerRadius) validZ = 18.5 - playerRadius;
 
-                // Arcade Cabinet Bounding Box Collisions
+                // Cabinet Bounding Box Collisions
                 arcadeCabinets.forEach(cab => {
                     if (validX > cab.minX - playerRadius && validX < cab.maxX + playerRadius &&
                         validZ > cab.minZ - playerRadius && validZ < cab.maxZ + playerRadius) {
@@ -854,7 +850,7 @@
                 playerPos.z = validZ;
             }
 
-            // Update Camera Position & Orientation
+            // Update Camera Position & Rotation
             camera.position.copy(playerPos);
 
             const euler = new THREE.Euler(pitch, yaw, 0, 'YXZ');
@@ -862,7 +858,7 @@
         }
 
         // ====================================================================
-        // 7. TARGET RAYCASTING & HUD INTERACTION
+        // 7. TARGET RAYCASTING & INTERACTION
         // ====================================================================
         function updateRaycasting() {
             if (!isPointerLocked) {
@@ -920,7 +916,8 @@
         function openTargetPortal() {
             if (targetCabinet && targetCabinet.config.url) {
                 playCoinSound();
-                window.open(targetCabinet.config.url, '_blank');
+                // REPLACES CURRENT TAB IMMEDIATELY
+                window.location.href = targetCabinet.config.url;
             }
         }
 
@@ -935,13 +932,13 @@
             const delta = Math.min(clock.getDelta(), 0.1);
             const elapsedTime = clock.getElapsedTime();
 
-            // FPS Camera & Movement update
+            // FPS Physics Movement
             updatePlayerMovement(delta);
 
-            // Target Raycasting
+            // Center Raycasting
             updateRaycasting();
 
-            // Dynamic Screen Textures & Cabinet Animations
+            // Dynamic Screen Textures & Hardware Animations
             updateScreenTextures(elapsedTime);
 
             arcadeCabinets.forEach((cab, idx) => {
@@ -962,7 +959,7 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
         }
 
-        // Initialize immediately on window load
+        // Initialize scene on window load
         window.onload = () => {
             init3DScene();
         };
