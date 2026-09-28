@@ -73,6 +73,8 @@
             <span class="text-cyan-300 font-bold">CLIQUER POUR CONTRÔLER</span>
             <span class="text-slate-600">|</span>
             <span class="text-slate-300"><i class="fa-solid fa-keyboard mr-1"></i> ZQSD / WASD pour marcher</span>
+            <span class="text-slate-600">|</span>
+            <span class="text-cyan-400 font-bold">ESPACE pour sauter</span>
         </div>
     </div>
 
@@ -142,6 +144,12 @@
         const playerPos = new THREE.Vector3(0, 1.13, frontZ - 1.5);
         const playerRadius = 0.35;
         const walkSpeed = 5.5;
+
+        // Jump physics variables
+        let velocityY = 0;
+        let isGrounded = true;
+        const gravity = 22.0;
+        const jumpStrength = 7.5;
 
         let targetInteractable = null;
 
@@ -481,7 +489,6 @@
             wcLeftWall.position.set(2.5, 2.6, -3.5);
             scene.add(wcLeftWall);
 
-            // Lumière confinée aux dimensions des WC pour ne pas traverser les murs
             const wcLight = new THREE.PointLight(0x00f0ff, 1.8, 3.2, 2.0);
             wcLight.position.set(wcRoomCenterX, 3.8, -3.5);
             scene.add(wcLight);
@@ -1107,6 +1114,14 @@
                     case 'KeyS': case 'ArrowDown': moveBackward = true; break;
                     case 'KeyA': case 'ArrowLeft': moveLeft = true; break;
                     case 'KeyD': case 'ArrowRight': moveRight = true; break;
+                    case 'Space': 
+                        e.preventDefault();
+                        if (isGrounded) {
+                            velocityY = jumpStrength;
+                            isGrounded = false;
+                            playSynthBeep(520, 0.08, 'sine', 0.08);
+                        }
+                        break;
                     case 'KeyM': toggleAudio(); break;
                     case 'KeyE': launchTargetPortal(); break;
                 }
@@ -1140,6 +1155,17 @@
 
         function updatePlayerMovement(delta) {
             if (!isPointerLocked || isExiting) return;
+
+            // Gravité et saut
+            velocityY -= gravity * delta;
+            playerPos.y += velocityY * delta;
+
+            const groundY = 1.13;
+            if (playerPos.y <= groundY) {
+                playerPos.y = groundY;
+                velocityY = 0;
+                isGrounded = true;
+            }
 
             const moveDir = new THREE.Vector3();
             const front = new THREE.Vector3(-Math.sin(yaw), 0, -Math.cos(yaw)).normalize();
@@ -1319,7 +1345,6 @@
                     showExitDoorHUD();
                 } else if (targetInteractable.isWC) {
                     wcDoor.isOpen = !wcDoor.isOpen;
-                    // Rotation de 90 degrés (Math.PI / 2)
                     wcDoor.targetRotation = wcDoor.isOpen ? Math.PI / 2 : 0;
                     playSynthBeep(wcDoor.isOpen ? 520 : 380, 0.15, 'triangle', 0.15);
                     showWCDoorHUD();
@@ -1391,7 +1416,6 @@
                 exitDoor.pivotGroup.rotation.y = exitDoor.currentRotation;
             }
 
-            // Animation de la porte des WC sur 90 degres (PI/2) effectuee en exactement 1 seconde
             if (Math.abs(wcDoor.currentRotation - wcDoor.targetRotation) > 0.001) {
                 const diff = wcDoor.targetRotation - wcDoor.currentRotation;
                 const step = Math.sign(diff) * delta * (Math.PI / 2);
