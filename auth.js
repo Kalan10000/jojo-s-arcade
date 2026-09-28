@@ -1,121 +1,105 @@
-/* ==========================================================================
-   JOJO'S ARCADE - AUTHENTICATION & HIGH SCORES MANAGER
-   ========================================================================== */
+// Arcade Hub Authentication & Score Persistence Manager
 
-// Default Local Storage Database Key
-const STORAGE_USERS_KEY = 'jojo_arcade_users';
-const STORAGE_SESSION_KEY = 'jojo_arcade_session';
-const STORAGE_SCORES_KEY = 'jojo_arcade_scores';
+const STORAGE_KEYS = {
+  USER: 'arcade_user_session',
+  SCORES: 'arcade_high_scores'
+};
 
-class ArcadeAuth {
-    constructor() {
-        this.currentUser = null;
-        this.initSession();
-    }
+// Default high scores
+const defaultScores = {
+  0: 0, // Game 1: Labyrinthe
+  1: 0, // Game 2: Tour Infinie
+  2: 0  // Game 3: Future Game
+};
 
-    // Initialize or restore session
-    initSession() {
-        const session = localStorage.getItem(STORAGE_SESSION_KEY);
-        if (session) {
-            try {
-                this.currentUser = JSON.parse(session);
-            } catch (e) {
-                this.currentUser = null;
-            }
-        }
-        this.updateUIState();
-    }
-
-    // Register a new user
-    register(username, password) {
-        if (!username || !password) {
-            return { success: false, message: "Username and password are required." };
-        }
-
-        const users = JSON.parse(localStorage.getItem(STORAGE_USERS_KEY) || '[]');
-        const existing = users.find(u => u.username.toLowerCase() === username.toLowerCase());
-
-        if (existing) {
-            return { success: false, message: "Username already exists." };
-        }
-
-        const newUser = {
-            id: 'user_' + Date.now(),
-            username: username,
-            password: password, // Note: For production with Supabase/Firebase, hashing is handled automatically
-            createdAt: new Date().toISOString()
-        };
-
-        users.push(newUser);
-        localStorage.setItem(STORAGE_USERS_KEY, JSON.stringify(users));
-
-        // Auto login
-        return this.login(username, password);
-    }
-
-    // Login existing user
-    login(username, password) {
-        const users = JSON.parse(localStorage.getItem(STORAGE_USERS_KEY) || '[]');
-        const user = users.find(u => u.username.toLowerCase() === username.toLowerCase() && u.password === password);
-
-        if (!user) {
-            return { success: false, message: "Invalid username or password." };
-        }
-
-        this.currentUser = { id: user.id, username: user.username };
-        localStorage.setItem(STORAGE_SESSION_KEY, JSON.stringify(this.currentUser));
-        this.updateUIState();
-
-        return { success: true, user: this.currentUser };
-    }
-
-    // Logout current user
-    logout() {
-        this.currentUser = null;
-        localStorage.removeItem(STORAGE_SESSION_KEY);
-        this.updateUIState();
-    }
-
-    // Save high score for a game
-    saveScore(gameId, score) {
-        if (!this.currentUser) return false;
-
-        const scores = JSON.parse(localStorage.getItem(STORAGE_SCORES_KEY) || '{}');
-        if (!scores[this.currentUser.id]) {
-            scores[this.currentUser.id] = {};
-        }
-
-        const currentBest = scores[this.currentUser.id][gameId] || 0;
-        if (score > currentBest) {
-            scores[this.currentUser.id][gameId] = score;
-            localStorage.setItem(STORAGE_SCORES_KEY, JSON.stringify(scores));
-            return true;
-        }
-
-        return false;
-    }
-
-    // Get user high scores for all games
-    getUserHighScores() {
-        if (!this.currentUser) return {};
-        const scores = JSON.parse(localStorage.getItem(STORAGE_SCORES_KEY) || '{}');
-        return scores[this.currentUser.id] || {};
-    }
-
-    // Update Header HUD status
-    updateUIState() {
-        const statusEl = document.getElementById('user-status-text');
-        if (statusEl) {
-            if (this.currentUser) {
-                statusEl.innerText = `CONNECTED: ${this.currentUser.username.toUpperCase()}`;
-                statusEl.className = "text-emerald-400 font-bold";
-            } else {
-                statusEl.innerText = "NOT LOGGED IN";
-                statusEl.className = "text-pink-400 font-bold";
-            }
-        }
-    }
+// Get current logged in user
+function getCurrentUser() {
+  const user = localStorage.getItem(STORAGE_KEYS.USER);
+  return user ? JSON.parse(user) : null;
 }
 
-// Global instance
-window.arcadeAuth = new ArcadeAuth();
+// Save logged in user
+function setCurrentUser(username) {
+  const userData = { username, loggedInAt: new Date().toISOString() };
+  localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(userData));
+  updateAuthUI();
+}
+
+// Log out user
+function logoutUser() {
+  localStorage.removeItem(STORAGE_KEYS.USER);
+  updateAuthUI();
+}
+
+// Fetch all high scores
+function getScores() {
+  const saved = localStorage.getItem(STORAGE_KEYS.SCORES);
+  return saved ? JSON.parse(saved) : defaultScores;
+}
+
+// Save or update score for a specific cabinet/game index
+function updateScore(gameId, score) {
+  const scores = getScores();
+  const currentBest = scores[gameId] || 0;
+
+  if (score > currentBest) {
+    scores[gameId] = score;
+    localStorage.setItem(STORAGE_KEYS.SCORES, JSON.stringify(scores));
+    renderHighScores();
+    return true; // New high score achieved
+  }
+  return false;
+}
+
+// Render high scores onto the dashboard / DOM
+function renderHighScores() {
+  const scores = getScores();
+  Object.keys(scores).forEach(gameId => {
+    const scoreElement = document.getElementById(`high-score-${gameId}`);
+    if (scoreElement) {
+      scoreElement.textContent = scores[gameId];
+    }
+  });
+}
+
+// Update login state elements in UI
+function updateAuthUI() {
+  const user = getCurrentUser();
+  const authStatus = document.getElementById('auth-status');
+  const loginBtn = document.getElementById('login-btn');
+  const logoutBtn = document.getElementById('logout-btn');
+
+  if (user) {
+    if (authStatus) authStatus.textContent = `Logged in as: ${user.username}`;
+    if (loginBtn) loginBtn.style.display = 'none';
+    if (logoutBtn) logoutBtn.style.display = 'inline-block';
+  } else {
+    if (authStatus) authStatus.textContent = 'Playing as Guest';
+    if (loginBtn) loginBtn.style.display = 'inline-block';
+    if (logoutBtn) logoutBtn.style.display = 'none';
+  }
+}
+
+// Listen for scores sent from Vercel games running inside the iframe overlay
+window.addEventListener('message', (event) => {
+  // Catch score event sent from iframe
+  if (event.data && event.data.type === 'ARCADE_SCORE') {
+    const receivedScore = parseInt(event.data.score, 10);
+    const activeGameId = window.activeArcadeGameId;
+
+    if (!isNaN(receivedScore) && activeGameId !== undefined) {
+      const isNewRecord = updateScore(activeGameId, receivedScore);
+      if (isNewRecord) {
+        alert(`New High Score! ${receivedScore} points saved!`);
+      } else {
+        alert(`Game Over! Score: ${receivedScore}`);
+      }
+    }
+  }
+});
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', () => {
+  updateAuthUI();
+  renderHighScores();
+});
