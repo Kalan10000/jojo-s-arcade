@@ -192,7 +192,18 @@
         const playerRadius = 0.33;
         const walkSpeed = 5.5;
 
-        let targetCabinet = null;
+        let targetInteractable = null;
+
+        // Exit Door State
+        let exitDoor = {
+            group: null,
+            pivotGroup: null,
+            panelMesh: null,
+            isOpen: false,
+            currentRotation: 0,
+            isExit: true
+        };
+        let isExiting = false;
 
         // Web Audio Synthesizer State
         let audioCtx = null;
@@ -264,6 +275,7 @@
             setupLighting();
             setupMainHall();
             setupSecretRoom();
+            setupExitDoor();
 
             buildMainCabinets();
             buildSecretCabinet();
@@ -342,10 +354,21 @@
             rightWall.rotation.y = -Math.PI / 2;
             scene.add(rightWall);
 
-            const frontWall = new THREE.Mesh(new THREE.PlaneGeometry(15, 5.2), wallMat);
-            frontWall.position.set(0, 2.6, 18);
-            frontWall.rotation.y = Math.PI;
-            scene.add(frontWall);
+            // Front wall divided to leave opening for exit door
+            const frontWallLeft = new THREE.Mesh(new THREE.PlaneGeometry(6.6, 5.2), wallMat);
+            frontWallLeft.position.set(-4.2, 2.6, 18);
+            frontWallLeft.rotation.y = Math.PI;
+            scene.add(frontWallLeft);
+
+            const frontWallRight = new THREE.Mesh(new THREE.PlaneGeometry(6.6, 5.2), wallMat);
+            frontWallRight.position.set(4.2, 2.6, 18);
+            frontWallRight.rotation.y = Math.PI;
+            scene.add(frontWallRight);
+
+            const frontWallTop = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 2.5), wallMat);
+            frontWallTop.position.set(0, 3.95, 18);
+            frontWallTop.rotation.y = Math.PI;
+            scene.add(frontWallTop);
 
             const backRightWall = new THREE.Mesh(new THREE.PlaneGeometry(12, 5.2), wallMat);
             backRightWall.position.set(1.5, 2.6, -10);
@@ -360,6 +383,85 @@
             scene.add(phaseWall);
 
             createCleanSign(0, 3.8, -9.9, 0);
+        }
+
+        function setupExitDoor() {
+            const doorGroup = new THREE.Group();
+            doorGroup.position.set(0, 0, 17.85);
+
+            // Metallic Frame
+            const frameMat = new THREE.MeshStandardMaterial({ color: 0x151221, roughness: 0.4, metalness: 0.8 });
+            const frameL = new THREE.Mesh(new THREE.BoxGeometry(0.12, 2.6, 0.15), frameMat);
+            frameL.position.set(-0.82, 1.3, 0);
+            doorGroup.add(frameL);
+
+            const frameR = new THREE.Mesh(new THREE.BoxGeometry(0.12, 2.6, 0.15), frameMat);
+            frameR.position.set(0.82, 1.3, 0);
+            doorGroup.add(frameR);
+
+            const frameTop = new THREE.Mesh(new THREE.BoxGeometry(1.76, 0.12, 0.15), frameMat);
+            frameTop.position.set(0, 2.54, 0);
+            doorGroup.add(frameTop);
+
+            // Pivot Group for Door Hinge
+            const pivotGroup = new THREE.Group();
+            pivotGroup.position.set(-0.76, 1.25, 0);
+
+            const doorMat = new THREE.MeshStandardMaterial({
+                color: 0x220b1b,
+                roughness: 0.3,
+                metalness: 0.5,
+                emissive: 0x44001a,
+                emissiveIntensity: 0.35
+            });
+            const panelMesh = new THREE.Mesh(new THREE.BoxGeometry(1.52, 2.45, 0.08), doorMat);
+            panelMesh.position.set(0.76, 0, 0);
+            panelMesh.userData = { isExitDoor: true };
+            pivotGroup.add(panelMesh);
+
+            // Handle Bar
+            const handleMat = new THREE.MeshStandardMaterial({ color: 0xff0055, metalness: 0.9, roughness: 0.1, emissive: 0xff0055, emissiveIntensity: 0.6 });
+            const handleBar = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.06, 0.08), handleMat);
+            handleBar.position.set(0.76, 0, -0.06);
+            pivotGroup.add(handleBar);
+
+            doorGroup.add(pivotGroup);
+
+            // Neon Sign Above Door
+            const exitCanvas = document.createElement('canvas');
+            exitCanvas.width = 512;
+            exitCanvas.height = 128;
+            const ctx = exitCanvas.getContext('2d');
+            ctx.fillStyle = '#0a0208';
+            ctx.fillRect(0, 0, 512, 128);
+            ctx.strokeStyle = '#ff0055';
+            ctx.lineWidth = 8;
+            ctx.strokeRect(6, 6, 500, 116);
+
+            ctx.fillStyle = '#ff0055';
+            ctx.font = '900 46px "Orbitron", sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('EXIT ARCADE', 256, 78);
+
+            const exitTex = new THREE.CanvasTexture(exitCanvas);
+            const signMesh = new THREE.Mesh(
+                new THREE.PlaneGeometry(1.6, 0.45),
+                new THREE.MeshBasicMaterial({ map: exitTex })
+            );
+            signMesh.position.set(0, 2.9, -0.01);
+            signMesh.rotation.y = Math.PI;
+            doorGroup.add(signMesh);
+
+            // Red Spotlight above door
+            const exitLight = new THREE.PointLight(0xff0055, 1.4, 6);
+            exitLight.position.set(0, 2.7, -0.4);
+            doorGroup.add(exitLight);
+
+            scene.add(doorGroup);
+
+            exitDoor.group = doorGroup;
+            exitDoor.pivotGroup = pivotGroup;
+            exitDoor.panelMesh = panelMesh;
         }
 
         function setupSecretRoom() {
@@ -988,7 +1090,18 @@
                 } else {
                     if (validX < -7.5 + playerRadius) validX = -7.5 + playerRadius;
                     if (validX > 7.5 - playerRadius) validX = 7.5 - playerRadius;
-                    if (validZ > 18.0 - playerRadius) validZ = 18.0 - playerRadius;
+
+                    const atDoorway = Math.abs(validX) < 0.75;
+                    const maxZBoundary = (exitDoor.isOpen && atDoorway) ? 19.0 : (18.0 - playerRadius);
+
+                    if (validZ > maxZBoundary) {
+                        validZ = maxZBoundary;
+                    }
+
+                    // Stepping inside open exit door triggers tab exit
+                    if (exitDoor.isOpen && validZ > 17.6 && atDoorway) {
+                        exitGame();
+                    }
 
                     const isFacingPortal = (validX >= -7.0 && validX <= -4.5);
                     if (!isFacingPortal && validZ < -10.0 + playerRadius) {
@@ -1021,6 +1134,7 @@
         function updateRaycasting() {
             if (!isPointerLocked) {
                 hideHUDPrompt();
+                targetInteractable = null;
                 return;
             }
 
@@ -1028,27 +1142,38 @@
 
             const interactables = [];
             arcadeCabinets.forEach(cab => interactables.push(cab.screenMesh));
+            if (exitDoor.panelMesh) interactables.push(exitDoor.panelMesh);
 
             const intersects = raycaster.intersectObjects(interactables);
             const crosshair = document.getElementById('crosshair');
 
             if (intersects.length > 0 && intersects[0].distance < 4.8) {
-                const cabId = intersects[0].object.userData.cabinetId;
-                const cabinet = arcadeCabinets.find(c => c.id === cabId);
+                const hitObj = intersects[0].object;
 
-                if (cabinet) {
-                    if (targetCabinet !== cabinet) {
-                        targetCabinet = cabinet;
+                if (hitObj.userData.isExitDoor) {
+                    if (targetInteractable !== exitDoor) {
+                        targetInteractable = exitDoor;
                         playSynthBeep(620, 0.05, 'sine', 0.06);
-                        showHUDPrompt(cabinet);
+                        showExitDoorHUD();
                     }
                     crosshair.classList.add('reticle-locked');
                     return;
+                } else if (hitObj.userData.cabinetId !== undefined) {
+                    const cabinet = arcadeCabinets.find(c => c.id === hitObj.userData.cabinetId);
+                    if (cabinet) {
+                        if (targetInteractable !== cabinet) {
+                            targetInteractable = cabinet;
+                            playSynthBeep(620, 0.05, 'sine', 0.06);
+                            showHUDPrompt(cabinet);
+                        }
+                        crosshair.classList.add('reticle-locked');
+                        return;
+                    }
                 }
             }
 
-            if (targetCabinet) {
-                targetCabinet = null;
+            if (targetInteractable) {
+                targetInteractable = null;
                 hideHUDPrompt();
             }
             crosshair.classList.remove('reticle-locked');
@@ -1076,6 +1201,23 @@
             prompt.style.transform = 'translate(-50%, 0) scale(1)';
         }
 
+        function showExitDoorHUD() {
+            const prompt = document.getElementById('hud-prompt');
+            const titleEl = document.getElementById('hud-title');
+
+            titleEl.innerText = "EXIT DOOR";
+            titleEl.className = 'font-orbitron font-extrabold text-lg md:text-xl text-pink-500';
+
+            document.getElementById('hud-url').innerText = "LEAVE ARCADE & CLOSE TAB";
+            document.getElementById('hud-category').innerText = "SYSTEM EXIT";
+            
+            const actionText = exitDoor.isOpen ? "WALK INSIDE OR PRESS [E] TO EXIT" : "CLICK OR PRESS [E] TO OPEN DOOR";
+            document.getElementById('hud-action-text').innerText = actionText;
+
+            prompt.style.opacity = '1';
+            prompt.style.transform = 'translate(-50%, 0) scale(1)';
+        }
+
         function hideHUDPrompt() {
             const prompt = document.getElementById('hud-prompt');
             prompt.style.opacity = '0';
@@ -1083,15 +1225,54 @@
         }
 
         function launchTargetPortal() {
-            if (targetCabinet) {
-                if (targetCabinet.config.isAuth) {
-                    playSynthBeep(750, 0.1, 'sine', 0.1);
-                    openAuthModal();
-                } else if (targetCabinet.config.url) {
-                    playSynthBeep(880, 0.15, 'triangle', 0.2);
-                    window.location.href = targetCabinet.config.url;
+            if (targetInteractable) {
+                if (targetInteractable.isExit) {
+                    if (!exitDoor.isOpen) {
+                        exitDoor.isOpen = true;
+                        playSynthBeep(520, 0.15, 'triangle', 0.15);
+                        showExitDoorHUD();
+                    } else {
+                        exitGame();
+                    }
+                } else if (targetInteractable.config) {
+                    if (targetInteractable.config.isAuth) {
+                        playSynthBeep(750, 0.1, 'sine', 0.1);
+                        openAuthModal();
+                    } else if (targetInteractable.config.url) {
+                        playSynthBeep(880, 0.15, 'triangle', 0.2);
+                        window.location.href = targetInteractable.config.url;
+                    }
                 }
             }
+        }
+
+        function exitGame() {
+            if (isExiting) return;
+            isExiting = true;
+            playSynthBeep(300, 0.4, 'sawtooth', 0.2);
+
+            if (document.pointerLockElement) {
+                document.exitPointerLock();
+            }
+
+            setTimeout(() => {
+                window.close();
+                window.top.close();
+
+                // Fallback display if browser prevents automatic window closing
+                setTimeout(() => {
+                    document.body.innerHTML = `
+                        <div class="h-full w-full bg-black flex flex-col items-center justify-center text-center p-6 font-orbitron">
+                            <div class="w-16 h-16 rounded-full bg-pink-500/20 border border-pink-500 flex items-center justify-center mb-4 animate-pulse">
+                                <i class="fa-solid fa-door-open text-2xl text-pink-500"></i>
+                            </div>
+                            <h1 class="text-3xl font-extrabold text-pink-500 mb-2">ARCADE CLOSED</h1>
+                            <p class="text-slate-300 text-sm mb-4">You have exited JoJo's Arcade.</p>
+                            <p class="text-slate-500 text-xs max-w-sm">If your browser prevented the tab from closing automatically, you can close this tab now.</p>
+                        </div>
+                    `;
+                }, 100);
+            }, 200);
         }
 
         /* --- Auth & High Scores UI Modal Logic --- */
@@ -1218,6 +1399,15 @@
 
             const delta = Math.min(clock.getDelta(), 0.1);
             const elapsedTime = clock.getElapsedTime();
+
+            // Animate door opening
+            if (exitDoor.isOpen && exitDoor.currentRotation < Math.PI * 0.52) {
+                exitDoor.currentRotation += delta * 3.5;
+                if (exitDoor.currentRotation > Math.PI * 0.52) {
+                    exitDoor.currentRotation = Math.PI * 0.52;
+                }
+                exitDoor.pivotGroup.rotation.y = exitDoor.currentRotation;
+            }
 
             updatePlayerMovement(delta);
             updateRaycasting();
