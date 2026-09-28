@@ -354,7 +354,6 @@
             rightWall.rotation.y = -Math.PI / 2;
             scene.add(rightWall);
 
-            // Front wall divided to leave opening for exit door
             const frontWallLeft = new THREE.Mesh(new THREE.PlaneGeometry(6.6, 5.2), wallMat);
             frontWallLeft.position.set(-4.2, 2.6, 18);
             frontWallLeft.rotation.y = Math.PI;
@@ -1083,7 +1082,6 @@
                         validZ = maxZBoundary;
                     }
 
-                    // Stepping inside open exit door triggers tab exit
                     if (exitDoor.isOpen && validZ > 17.6 && atDoorway) {
                         exitGame();
                         return;
@@ -1237,14 +1235,12 @@
                 document.exitPointerLock();
             }
 
-            // Attempt programmatic close
             try {
                 window.close();
                 window.open('', '_self', '');
                 window.close();
             } catch (e) {}
 
-            // Display retro shut down interface
             document.body.innerHTML = `
                 <div class="h-full w-full bg-[#040208] flex flex-col items-center justify-center text-center p-6 font-orbitron relative overflow-hidden select-none">
                     <div class="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.3)_50%)] bg-[length:100%_4px] pointer-events-none"></div>
@@ -1329,6 +1325,7 @@
             const res = window.arcadeAuth.login(u, p);
             if (res.success) {
                 errEl.classList.add('hidden');
+                updateAuthStatusBadge();
                 switchAuthTab('scores');
             } else {
                 errEl.innerText = res.message;
@@ -1344,6 +1341,7 @@
             const res = window.arcadeAuth.register(u, p);
             if (res.success) {
                 errEl.classList.add('hidden');
+                updateAuthStatusBadge();
                 switchAuthTab('scores');
             } else {
                 errEl.innerText = res.message;
@@ -1353,7 +1351,19 @@
 
         function handleLogout() {
             window.arcadeAuth.logout();
+            updateAuthStatusBadge();
             switchAuthTab('login');
+        }
+
+        function updateAuthStatusBadge() {
+            const statusEl = document.getElementById('user-status-text');
+            if (window.arcadeAuth && window.arcadeAuth.currentUser) {
+                statusEl.innerText = `USER: ${window.arcadeAuth.currentUser.username.toUpperCase()}`;
+                statusEl.className = 'text-emerald-400 font-bold';
+            } else {
+                statusEl.innerText = 'NOT LOGGED IN';
+                statusEl.className = 'text-pink-400 font-bold';
+            }
         }
 
         function renderScoresList() {
@@ -1389,6 +1399,31 @@
             listEl.innerHTML = html;
         }
 
+        // Check URL parameters on load for incoming score returns from Vercel games
+        function checkURLScoreReturn() {
+            const params = new URLSearchParams(window.location.search);
+            const gameIdParam = params.get('gameId');
+            const scoreParam = params.get('score');
+
+            if (gameIdParam !== null && scoreParam !== null) {
+                const gameId = parseInt(gameIdParam, 10);
+                const score = parseInt(scoreParam, 10);
+
+                if (!isNaN(gameId) && !isNaN(score) && window.arcadeAuth && window.arcadeAuth.currentUser) {
+                    const isNewRecord = window.arcadeAuth.updateScore(gameId, score);
+                    if (isNewRecord) {
+                        setTimeout(() => {
+                            openAuthModal();
+                            switchAuthTab('scores');
+                            alert(`New High Score Recorded: ${score} PTS!`);
+                        }, 500);
+                    }
+                }
+                // Clean URL params without reloading
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+        }
+
         const clock = new THREE.Clock();
 
         function animate() {
@@ -1399,7 +1434,6 @@
             const delta = Math.min(clock.getDelta(), 0.1);
             const elapsedTime = clock.getElapsedTime();
 
-            // Smooth 3-second open/close animation loop
             if (Math.abs(exitDoor.currentRotation - exitDoor.targetRotation) > 0.001) {
                 const diff = exitDoor.targetRotation - exitDoor.currentRotation;
                 const step = Math.sign(diff) * delta * 0.55;
@@ -1428,6 +1462,8 @@
 
         window.onload = () => {
             init3DScene();
+            updateAuthStatusBadge();
+            checkURLScoreReturn();
         };
     </script>
 </body>
