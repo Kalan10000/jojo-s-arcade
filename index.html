@@ -107,13 +107,13 @@
 
     <script>
         const MAIN_ARCADE_CONFIGS = [
-            { title: "LABYRINTHE", category: "Labyrinthe", url: "https://labyrintheajojo.vercel.app/", color: "#ff0055" },
-            { title: "TOUR INFINIE", category: "Tour infinie", url: "https://tourinfinie.vercel.app", color: "#00f3ff" },
-            { title: "NEON OVERDRIVE", category: "Neon overdrive", url: "https://neonoverdrive.vercel.app", color: "#39ff14" },
-            { title: "SPACIAL MASTER", category: "Spacial master", url: "https://spacialmaster.vercel.app", color: "#bf00ff" },
-            { title: "LA JUSTE COULEUR", category: "La juste couleur", url: "https://lajustecouleur.vercel.app", color: "#ffcc00" },
-            { title: "SANDWICH", category: "Simulateur de sandwich", url: "https://simulateursandwich.vercel.app", color: "#ff00aa" },
-            { title: "AI. JOJO", category: "AI. Jojo", url: "https://ai-jojo-orpin.vercel.app", color: "#ff6600" }
+            { title: "LABYRINTHE", category: "Labyrinthe", url: "https://labyrintheajojo.vercel.app/", color: "#ff0055", image: "labyrinthe a jojo.png" },
+            { title: "TOUR INFINIE", category: "Tour infinie", url: "https://tourinfinie.vercel.app", color: "#00f3ff", image: "tour infinie.jpg" },
+            { title: "NEON OVERDRIVE", category: "Neon overdrive", url: "https://neonoverdrive.vercel.app", color: "#39ff14", image: "neon overdrive.png" },
+            { title: "SPACIAL MASTER", category: "Spacial master", url: "https://spacialmaster.vercel.app", color: "#bf00ff", image: "spacial master.png" },
+            { title: "LA JUSTE COULEUR", category: "La juste couleur", url: "https://lajustecouleur.vercel.app", color: "#ffcc00", image: "la juste couleur.png" },
+            { title: "SANDWICH", category: "Simulateur de sandwich", url: "https://simulateursandwich.vercel.app", color: "#ff00aa", image: "simulateur de sandwich.jpg" },
+            { title: "AI. JOJO", category: "AI. Jojo", url: "https://ai-jojo-orpin.vercel.app", color: "#ff6600", image: "aijojo.png" }
         ];
 
         const SECRET_CABINET_CONFIG = {
@@ -162,7 +162,7 @@
         // Camera transition variables
         let isZoomingIn = false;
         let zoomStartTime = 0;
-        const ZOOM_DURATION = 2.0; // Augmenté à 2.0 secondes (1 sec de plus)
+        const ZOOM_DURATION = 2.0;
         let isFadeStarted = false;
         let startCamPos = new THREE.Vector3();
         let targetCamPos = new THREE.Vector3();
@@ -794,15 +794,24 @@
             screenFrame.rotation.x = -0.22;
             group.add(screenFrame);
 
-            const screenCanvas = document.createElement('canvas');
-            screenCanvas.width = 512;
-            screenCanvas.height = 384;
-            const screenCtx = screenCanvas.getContext('2d');
+            let screenMesh, screenCanvas = null, screenCtx = null;
 
-            const screenTexture = new THREE.CanvasTexture(screenCanvas);
-            const screenMat = new THREE.MeshBasicMaterial({ map: screenTexture });
+            if (data.image) {
+                const textureLoader = new THREE.TextureLoader();
+                const screenTexture = textureLoader.load(data.image);
+                const screenMat = new THREE.MeshBasicMaterial({ map: screenTexture });
+                screenMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.68, 0.52), screenMat);
+            } else {
+                screenCanvas = document.createElement('canvas');
+                screenCanvas.width = 512;
+                screenCanvas.height = 384;
+                screenCtx = screenCanvas.getContext('2d');
 
-            const screenMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.68, 0.52), screenMat);
+                const screenTexture = new THREE.CanvasTexture(screenCanvas);
+                const screenMat = new THREE.MeshBasicMaterial({ map: screenTexture });
+                screenMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.68, 0.52), screenMat);
+            }
+
             screenMesh.position.set(0, 1.35, 0.43);
             screenMesh.rotation.x = -0.22;
             group.add(screenMesh);
@@ -912,82 +921,11 @@
 
         function updateScreenTextures(time) {
             arcadeCabinets.forEach((cab) => {
-                const ctx = cab.screenCtx;
-                const width = 512;
-                const height = 384;
-                const config = cab.config;
-
-                if (config.isSecret) {
-                    renderVintagePixelScreen(ctx, width, height, time, config);
-                } else {
-                    renderArcadeGameScreen(ctx, width, height, time, config);
+                if (cab.config.isSecret && cab.screenCtx) {
+                    renderVintagePixelScreen(cab.screenCtx, 512, 384, time, cab.config);
+                    cab.screenMesh.material.map.needsUpdate = true;
                 }
-
-                cab.screenMesh.material.map.needsUpdate = true;
             });
-        }
-
-        function renderArcadeGameScreen(ctx, width, height, time, config) {
-            const themeColor = config.color || '#ff007f';
-
-            ctx.fillStyle = '#05020a';
-            ctx.fillRect(0, 0, width, height);
-
-            ctx.strokeStyle = themeColor;
-            ctx.lineWidth = 1.5;
-            ctx.globalAlpha = 0.4;
-            const horizon = height * 0.5;
-
-            for (let x = -width; x <= width * 2; x += 32) {
-                ctx.beginPath();
-                ctx.moveTo(width / 2, horizon);
-                ctx.lineTo(x, height);
-                ctx.stroke();
-            }
-
-            const gridOffset = (time * 50) % 18;
-            for (let y = horizon; y < height; y += 10) {
-                const drawY = y + gridOffset;
-                if (drawY < height) {
-                    ctx.beginPath();
-                    ctx.moveTo(0, drawY);
-                    ctx.lineTo(width, drawY);
-                    ctx.stroke();
-                }
-            }
-            ctx.globalAlpha = 1.0;
-
-            ctx.strokeStyle = themeColor;
-            ctx.lineWidth = 3;
-            ctx.beginPath();
-            const centerY = height * 0.35;
-            for (let x = 0; x <= width; x += 6) {
-                const wave = Math.sin(x * 0.025 + time * 4) * 20;
-                if (x === 0) ctx.moveTo(x, centerY + wave);
-                else ctx.lineTo(x, centerY + wave);
-            }
-            ctx.stroke();
-
-            ctx.fillStyle = '#ffffff';
-            ctx.font = '800 30px "Orbitron", sans-serif';
-            ctx.textAlign = 'center';
-            ctx.fillText(config.title, width / 2, height * 0.72);
-
-            ctx.fillStyle = themeColor;
-            ctx.font = '600 14px "Orbitron", sans-serif';
-            ctx.fillText(config.category.toUpperCase(), width / 2, height * 0.81);
-
-            const blink = Math.sin(time * 5) > 0;
-            if (blink) {
-                ctx.fillStyle = '#ffffff';
-                ctx.font = 'bold 12px "Orbitron", sans-serif';
-                ctx.fillText("▶ CLIQUER POUR LANCER LE PORTAIL ◀", width / 2, height * 0.92);
-            }
-
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
-            for (let y = 0; y < height; y += 4) {
-                ctx.fillRect(0, y, width, 2);
-            }
         }
 
         function renderVintagePixelScreen(ctx, width, height, time, config) {
@@ -1173,7 +1111,6 @@
         function updatePlayerMovement(delta) {
             if (!isPointerLocked || isExiting || isZoomingIn) return;
 
-            // Gravité et saut
             velocityY -= gravity * delta;
             playerPos.y += velocityY * delta;
 
@@ -1398,7 +1335,6 @@
             const forward = new THREE.Vector3(0, 0, 1).applyQuaternion(screenWorldQuat);
             targetCamPos.copy(screenWorldPos).addScaledVector(forward, offsetDistance);
 
-            // Orientation vers l'écran
             targetCamQuat.copy(screenWorldQuat);
 
             zoomStartTime = clock.getElapsedTime();
@@ -1455,7 +1391,6 @@
             if (isZoomingIn) {
                 const elapsedTimeInZoom = elapsedTime - zoomStartTime;
 
-                // Le fondu démarre 1 seconde plus tard (à t = 1.0s)
                 if (elapsedTimeInZoom >= 1.0 && !isFadeStarted) {
                     isFadeStarted = true;
                     document.getElementById('fade-overlay').classList.remove('opacity-0');
@@ -1463,12 +1398,11 @@
                 }
 
                 const progress = Math.min(elapsedTimeInZoom / ZOOM_DURATION, 1.0);
-                const easeProgress = progress * progress * (3 - 2 * progress); // Easing Smoothstep
+                const easeProgress = progress * progress * (3 - 2 * progress);
 
                 camera.position.lerpVectors(startCamPos, targetCamPos, easeProgress);
                 camera.quaternion.slerpQuaternions(startCamQuat, targetCamQuat, easeProgress);
 
-                // La redirection s'effectue après l'animation complète (2s)
                 if (progress >= 1.0) {
                     window.location.href = pendingTargetUrl;
                     return;
