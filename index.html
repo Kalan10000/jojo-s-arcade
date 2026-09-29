@@ -59,48 +59,6 @@
         .animate-float-up {
             animation: floatUpDown 1.2s ease-in-out infinite;
         }
-
-        /* Styles pour le Panneau Réglage Zoom 3D */
-        .zoom-panel-slider {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 100%;
-            height: 4px;
-            background: #1e293b;
-            border-radius: 2px;
-            outline: none;
-        }
-
-        .zoom-panel-slider::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 18px;
-            height: 18px;
-            border-radius: 50%;
-            background: #00f0ff;
-            cursor: pointer;
-            box-shadow: 0 0 10px rgba(0, 240, 255, 0.8);
-            transition: transform 0.1s ease;
-        }
-
-        .zoom-panel-slider::-webkit-slider-thumb:hover {
-            transform: scale(1.2);
-        }
-
-        .zoom-panel-slider::-moz-range-thumb {
-            width: 18px;
-            height: 18px;
-            border-radius: 50%;
-            background: #00f0ff;
-            cursor: pointer;
-            border: none;
-            box-shadow: 0 0 10px rgba(0, 240, 255, 0.8);
-            transition: transform 0.1s ease;
-        }
-
-        .zoom-panel-slider::-moz-range-thumb:hover {
-            transform: scale(1.2);
-        }
     </style>
 </head>
 <body class="h-full w-full relative overflow-hidden bg-black select-none">
@@ -124,72 +82,6 @@
             <span class="text-slate-600">|</span>
             <span class="text-cyan-400 font-bold">ESPACE pour sauter</span>
         </div>
-    </div>
-
-    <!-- PANEL REGLAGE DU ZOOM 3D (IMAGE) -->
-    <div id="zoom-controls-panel" class="fixed top-5 right-5 z-30 w-80 bg-[#090514]/95 backdrop-blur-md border border-slate-800/80 rounded-xl p-4 shadow-2xl text-white font-orbitron select-none">
-        <!-- Header -->
-        <div class="flex items-center justify-between pb-3 mb-4 border-b border-slate-800">
-            <div class="flex items-center space-x-2 text-cyan-400">
-                <i class="fa-solid fa-sliders text-sm"></i>
-                <h2 class="text-xs font-extrabold tracking-wider uppercase">RÉGLAGE DU ZOOM 3D</h2>
-            </div>
-            <span class="text-[10px] text-cyan-400 uppercase font-bold tracking-widest">ZOOMÉ</span>
-        </div>
-
-        <!-- Sliders List -->
-        <div class="space-y-4 text-[11px] font-semibold tracking-tight">
-            <!-- Distance Z -->
-            <div>
-                <div class="flex justify-between items-center mb-1">
-                    <span class="text-slate-300">Distance Z (Profondeur):</span>
-                    <span id="val-dist-z" class="text-cyan-400 font-bold">0.320m</span>
-                </div>
-                <input type="range" id="slider-dist-z" min="0" max="2" step="0.005" value="0.32" class="zoom-panel-slider">
-            </div>
-
-            <!-- Position X -->
-            <div>
-                <div class="flex justify-between items-center mb-1">
-                    <span class="text-slate-300">Position X (Gauche/Droite):</span>
-                    <span id="val-pos-x" class="text-cyan-400 font-bold">0.000m</span>
-                </div>
-                <input type="range" id="slider-pos-x" min="-1" max="1" step="0.005" value="0.00" class="zoom-panel-slider">
-            </div>
-
-            <!-- Position Y -->
-            <div>
-                <div class="flex justify-between items-center mb-1">
-                    <span class="text-slate-300">Position Y (Haut/Bas):</span>
-                    <span id="val-pos-y" class="text-cyan-400 font-bold">-0.050m</span>
-                </div>
-                <input type="range" id="slider-pos-y" min="-1" max="1" step="0.005" value="-0.05" class="zoom-panel-slider">
-            </div>
-
-            <!-- Inclinaison Pitch -->
-            <div>
-                <div class="flex justify-between items-center mb-1">
-                    <span class="text-slate-300">Inclinaison Pitch (Regard Haut/Bas):</span>
-                    <span id="val-pitch" class="text-cyan-400 font-bold">-1.5°</span>
-                </div>
-                <input type="range" id="slider-pitch" min="-45" max="45" step="0.5" value="-1.5" class="zoom-panel-slider">
-            </div>
-
-            <!-- Champ de Vision (FOV) -->
-            <div>
-                <div class="flex justify-between items-center mb-1">
-                    <span class="text-slate-300">Champ de Vision (FOV):</span>
-                    <span id="val-fov" class="text-cyan-400 font-bold">62°</span>
-                </div>
-                <input type="range" id="slider-fov" min="30" max="120" step="1" value="62" class="zoom-panel-slider">
-            </div>
-        </div>
-
-        <!-- Reset Button -->
-        <button id="btn-reset-cam" class="w-full mt-5 py-2.5 bg-[#8b1548] hover:bg-[#a31a55] active:bg-[#73103b] text-white rounded-full text-xs font-bold tracking-wider transition-all duration-200 flex items-center justify-center space-x-2 border border-pink-500/30 shadow-lg">
-            <i class="fa-solid fa-rotate-left"></i>
-            <span>RÉINITIALISER LA CAMÉRA</span>
-        </button>
     </div>
 
     <!-- TARGET CABINET HUD DISPLAY -->
@@ -255,20 +147,9 @@
         let moveRight = false;
         let isPointerLocked = false;
 
-        // Camera Default Zoom Settings
-        const DEFAULT_CAM_SETTINGS = {
-            distZ: 0.320,
-            posX: 0.000,
-            posY: -0.050,
-            pitch: -1.5,
-            fov: 62
-        };
-
-        let currentCamSettings = { ...DEFAULT_CAM_SETTINGS };
-
-        let pitch = THREE.MathUtils.degToRad(DEFAULT_CAM_SETTINGS.pitch);
+        let pitch = 0;
         let yaw = 0;
-        const playerPos = new THREE.Vector3(DEFAULT_CAM_SETTINGS.posX, 1.13 + DEFAULT_CAM_SETTINGS.posY, frontZ - 1.5 + DEFAULT_CAM_SETTINGS.distZ);
+        const playerPos = new THREE.Vector3(0, 1.13, frontZ - 1.5);
         const playerRadius = 0.35;
         const walkSpeed = 5.5;
 
@@ -387,7 +268,7 @@
             scene.background = new THREE.Color(0x05030a);
             scene.fog = new THREE.FogExp2(0x05030a, 0.018);
 
-            camera = new THREE.PerspectiveCamera(currentCamSettings.fov, window.innerWidth / window.innerHeight, 0.01, 100);
+            camera = new THREE.PerspectiveCamera(62, window.innerWidth / window.innerHeight, 0.01, 100);
             camera.position.copy(playerPos);
 
             const euler = new THREE.Euler(pitch, yaw, 0, 'YXZ');
@@ -413,98 +294,9 @@
             buildSecretCabinet();
 
             setupFPSControls();
-            setupZoomUIControls();
 
             window.addEventListener('resize', onWindowResize);
             animate();
-        }
-
-        function setupZoomUIControls() {
-            const panel = document.getElementById('zoom-controls-panel');
-            panel.addEventListener('mousedown', (e) => e.stopPropagation());
-            panel.addEventListener('click', (e) => e.stopPropagation());
-
-            const sliderDistZ = document.getElementById('slider-dist-z');
-            const sliderPosX = document.getElementById('slider-pos-x');
-            const sliderPosY = document.getElementById('slider-pos-y');
-            const sliderPitch = document.getElementById('slider-pitch');
-            const sliderFov = document.getElementById('slider-fov');
-
-            const valDistZ = document.getElementById('val-dist-z');
-            const valPosX = document.getElementById('val-pos-x');
-            const valPosY = document.getElementById('val-pos-y');
-            const valPitch = document.getElementById('val-pitch');
-            const valFov = document.getElementById('val-fov');
-
-            const btnReset = document.getElementById('btn-reset-cam');
-
-            sliderDistZ.addEventListener('input', (e) => {
-                const val = parseFloat(e.target.value);
-                const diff = val - currentCamSettings.distZ;
-                currentCamSettings.distZ = val;
-                valDistZ.innerText = val.toFixed(3) + 'm';
-                playerPos.z += diff;
-            });
-
-            sliderPosX.addEventListener('input', (e) => {
-                const val = parseFloat(e.target.value);
-                const diff = val - currentCamSettings.posX;
-                currentCamSettings.posX = val;
-                valPosX.innerText = val.toFixed(3) + 'm';
-                playerPos.x += diff;
-            });
-
-            sliderPosY.addEventListener('input', (e) => {
-                const val = parseFloat(e.target.value);
-                const diff = val - currentCamSettings.posY;
-                currentCamSettings.posY = val;
-                valPosY.innerText = val.toFixed(3) + 'm';
-                playerPos.y += diff;
-            });
-
-            sliderPitch.addEventListener('input', (e) => {
-                const val = parseFloat(e.target.value);
-                currentCamSettings.pitch = val;
-                valPitch.innerText = val.toFixed(1) + '°';
-                pitch = THREE.MathUtils.degToRad(val);
-            });
-
-            sliderFov.addEventListener('input', (e) => {
-                const val = parseInt(e.target.value);
-                currentCamSettings.fov = val;
-                valFov.innerText = val + '°';
-                camera.fov = val;
-                camera.updateProjectionMatrix();
-            });
-
-            btnReset.addEventListener('click', () => {
-                sliderDistZ.value = DEFAULT_CAM_SETTINGS.distZ;
-                sliderPosX.value = DEFAULT_CAM_SETTINGS.posX;
-                sliderPosY.value = DEFAULT_CAM_SETTINGS.posY;
-                sliderPitch.value = DEFAULT_CAM_SETTINGS.pitch;
-                sliderFov.value = DEFAULT_CAM_SETTINGS.fov;
-
-                valDistZ.innerText = DEFAULT_CAM_SETTINGS.distZ.toFixed(3) + 'm';
-                valPosX.innerText = DEFAULT_CAM_SETTINGS.posX.toFixed(3) + 'm';
-                valPosY.innerText = DEFAULT_CAM_SETTINGS.posY.toFixed(3) + 'm';
-                valPitch.innerText = DEFAULT_CAM_SETTINGS.pitch.toFixed(1) + '°';
-                valFov.innerText = DEFAULT_CAM_SETTINGS.fov + '°';
-
-                const diffX = DEFAULT_CAM_SETTINGS.posX - currentCamSettings.posX;
-                const diffY = DEFAULT_CAM_SETTINGS.posY - currentCamSettings.posY;
-                const diffZ = DEFAULT_CAM_SETTINGS.distZ - currentCamSettings.distZ;
-
-                playerPos.x += diffX;
-                playerPos.y += diffY;
-                playerPos.z += diffZ;
-
-                pitch = THREE.MathUtils.degToRad(DEFAULT_CAM_SETTINGS.pitch);
-
-                camera.fov = DEFAULT_CAM_SETTINGS.fov;
-                camera.updateProjectionMatrix();
-
-                currentCamSettings = { ...DEFAULT_CAM_SETTINGS };
-            });
         }
 
         function setupLighting() {
@@ -1242,7 +1034,7 @@
             const hintBanner = document.getElementById('click-hint-banner');
 
             document.addEventListener('click', (e) => {
-                if (e.target.closest('#btn-audio') || e.target.closest('#zoom-controls-panel') || isExiting || isZoomingIn) return;
+                if (e.target.closest('#btn-audio') || isExiting || isZoomingIn) return;
 
                 if (!isPointerLocked) {
                     document.body.requestPointerLock();
@@ -1325,7 +1117,7 @@
             velocityY -= gravity * delta;
             playerPos.y += velocityY * delta;
 
-            const groundY = 1.13 + currentCamSettings.posY;
+            const groundY = 1.13;
             if (playerPos.y <= groundY) {
                 playerPos.y = groundY;
                 velocityY = 0;
@@ -1536,6 +1328,7 @@
             startCamPos.copy(camera.position);
             startCamQuat.copy(camera.quaternion);
 
+            // Application des réglages personnalisés du zoom
             const screenMesh = cabinet.screenMesh;
             const screenWorldPos = new THREE.Vector3();
             screenMesh.getWorldPosition(screenWorldPos);
@@ -1543,11 +1336,28 @@
             const screenWorldQuat = new THREE.Quaternion();
             screenMesh.getWorldQuaternion(screenWorldQuat);
 
-            const offsetDistance = isTargetSecret ? 0.52 : 0.05;
-            const forward = new THREE.Vector3(0, 0, 1).applyQuaternion(screenWorldQuat);
-            targetCamPos.copy(screenWorldPos).addScaledVector(forward, offsetDistance);
+            // Ajustement dynamique du Champ de Vision (FOV: 62°)
+            camera.fov = 62;
+            camera.updateProjectionMatrix();
 
-            targetCamQuat.copy(screenWorldQuat);
+            // Offsets issus des réglages : Z=0.320m, X=0.000m, Y=-0.050m
+            const offsetDistZ = 0.320;
+            const offsetX = 0.000;
+            const offsetY = -0.050;
+
+            const forward = new THREE.Vector3(0, 0, 1).applyQuaternion(screenWorldQuat);
+            const right = new THREE.Vector3(1, 0, 0).applyQuaternion(screenWorldQuat);
+            const up = new THREE.Vector3(0, 1, 0).applyQuaternion(screenWorldQuat);
+
+            targetCamPos.copy(screenWorldPos)
+                .addScaledVector(forward, offsetDistZ)
+                .addScaledVector(right, offsetX)
+                .addScaledVector(up, offsetY);
+
+            // Inclinaison Pitch de -1.5° (Regard Haut/Bas)
+            const pitchAngle = -1.5 * (Math.PI / 180);
+            const pitchQuat = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), pitchAngle);
+            targetCamQuat.copy(screenWorldQuat).multiply(pitchQuat);
 
             zoomStartTime = clock.getElapsedTime();
         }
