@@ -69,7 +69,7 @@
     <!-- FPS Reticle -->
     <div id="crosshair" class="pointer-events-none fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 w-3 h-3 rounded-full border border-cyan-400 bg-cyan-400/20 transition-all duration-150"></div>
 
-    <!-- Fade overlay for transition -->
+    <!-- Fade overlay for transition (used for secret cabinet) -->
     <div id="fade-overlay" class="pointer-events-none fixed inset-0 z-50 bg-black opacity-0 transition-opacity duration-1000 ease-in-out"></div>
 
     <!-- Banner Instructions -->
@@ -162,8 +162,9 @@
         // Camera transition variables
         let isZoomingIn = false;
         let zoomStartTime = 0;
-        const ZOOM_DURATION = 2.0;
+        const ZOOM_DURATION = 1.5;
         let isFadeStarted = false;
+        let isTargetSecret = false;
         let startCamPos = new THREE.Vector3();
         let targetCamPos = new THREE.Vector3();
         let startCamQuat = new THREE.Quaternion();
@@ -265,7 +266,7 @@
             scene.background = new THREE.Color(0x05030a);
             scene.fog = new THREE.FogExp2(0x05030a, 0.018);
 
-            camera = new THREE.PerspectiveCamera(62, window.innerWidth / window.innerHeight, 0.1, 100);
+            camera = new THREE.PerspectiveCamera(62, window.innerWidth / window.innerHeight, 0.01, 100);
             camera.position.copy(playerPos);
 
             const euler = new THREE.Euler(pitch, yaw, 0, 'YXZ');
@@ -1312,6 +1313,7 @@
         function startCameraZoomToScreen(cabinet) {
             isZoomingIn = true;
             isFadeStarted = false;
+            isTargetSecret = !!cabinet.config.isSecret;
             pendingTargetUrl = cabinet.config.url;
 
             if (document.pointerLockElement) {
@@ -1331,7 +1333,8 @@
             const screenWorldQuat = new THREE.Quaternion();
             screenMesh.getWorldQuaternion(screenWorldQuat);
 
-            const offsetDistance = 0.52;
+            // Position target camera close enough so the screen fills the view completely
+            const offsetDistance = isTargetSecret ? 0.52 : 0.05;
             const forward = new THREE.Vector3(0, 0, 1).applyQuaternion(screenWorldQuat);
             targetCamPos.copy(screenWorldPos).addScaledVector(forward, offsetDistance);
 
@@ -1391,7 +1394,7 @@
             if (isZoomingIn) {
                 const elapsedTimeInZoom = elapsedTime - zoomStartTime;
 
-                if (elapsedTimeInZoom >= 1.0 && !isFadeStarted) {
+                if (isTargetSecret && elapsedTimeInZoom >= 0.8 && !isFadeStarted) {
                     isFadeStarted = true;
                     document.getElementById('fade-overlay').classList.remove('opacity-0');
                     document.getElementById('fade-overlay').classList.add('opacity-100');
