@@ -66,6 +66,9 @@
     <!-- FPS Reticle -->
     <div id="crosshair" class="pointer-events-none fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 w-3 h-3 rounded-full border border-cyan-400 bg-cyan-400/20 transition-all duration-150"></div>
 
+    <!-- Fade overlay for transition -->
+    <div id="fade-overlay" class="pointer-events-none fixed inset-0 z-50 bg-black opacity-0 transition-opacity duration-1000 ease-in-out"></div>
+
     <!-- Banner Instructions -->
     <div id="click-hint-banner" class="fixed top-5 left-1/2 -translate-x-1/2 z-30 pointer-events-none transition-opacity duration-500">
         <div class="glass-panel px-5 py-2 rounded-xl border border-slate-700 shadow-lg flex items-center space-x-3 text-xs font-orbitron">
@@ -152,6 +155,17 @@
         const jumpStrength = 7.5;
 
         let targetInteractable = null;
+
+        // Camera transition variables
+        let isZoomingIn = false;
+        let zoomStartTime = 0;
+        const ZOOM_DURATION = 2.0; // Augmenté à 2.0 secondes (1 sec de plus)
+        let isFadeStarted = false;
+        let startCamPos = new THREE.Vector3();
+        let targetCamPos = new THREE.Vector3();
+        let startCamQuat = new THREE.Quaternion();
+        let targetCamQuat = new THREE.Quaternion();
+        let pendingTargetUrl = "";
 
         let exitDoor = {
             group: null,
@@ -1076,7 +1090,7 @@
             const hintBanner = document.getElementById('click-hint-banner');
 
             document.addEventListener('click', (e) => {
-                if (e.target.closest('#btn-audio') || isExiting) return;
+                if (e.target.closest('#btn-audio') || isExiting || isZoomingIn) return;
 
                 if (!isPointerLocked) {
                     document.body.requestPointerLock();
@@ -1093,12 +1107,12 @@
                     hintBanner.style.opacity = '0';
                 } else {
                     isPointerLocked = false;
-                    if (!isExiting) hintBanner.style.opacity = '1';
+                    if (!isExiting && !isZoomingIn) hintBanner.style.opacity = '1';
                 }
             });
 
             document.addEventListener('mousemove', (e) => {
-                if (!isPointerLocked) return;
+                if (!isPointerLocked || isZoomingIn) return;
 
                 const sensitivity = 0.0022;
                 yaw -= e.movementX * sensitivity;
@@ -1108,7 +1122,7 @@
             });
 
             document.addEventListener('keydown', (e) => {
-                if (isExiting) return;
+                if (isExiting || isZoomingIn) return;
                 switch (e.code) {
                     case 'KeyW': case 'ArrowUp': moveForward = true; break;
                     case 'KeyS': case 'ArrowDown': moveBackward = true; break;
@@ -1154,7 +1168,7 @@
         }
 
         function updatePlayerMovement(delta) {
-            if (!isPointerLocked || isExiting) return;
+            if (!isPointerLocked || isExiting || isZoomingIn) return;
 
             // Gravité et saut
             velocityY -= gravity * delta;
@@ -1221,7 +1235,7 @@
         }
 
         function updateRaycasting() {
-            if (!isPointerLocked || isExiting) {
+            if (!isPointerLocked || isExiting || isZoomingIn) {
                 hideHUDPrompt();
                 targetInteractable = null;
                 return;
@@ -1350,9 +1364,41 @@
                     showWCDoorHUD();
                 } else if (targetInteractable.config && targetInteractable.config.url) {
                     playSynthBeep(880, 0.15, 'triangle', 0.2);
-                    window.location.href = targetInteractable.config.url;
+                    startCameraZoomToScreen(targetInteractable);
                 }
             }
+        }
+
+        function startCameraZoomToScreen(cabinet) {
+            isZoomingIn = true;
+            isFadeStarted = false;
+            pendingTargetUrl = cabinet.config.url;
+
+            if (document.pointerLockElement) {
+                document.exitPointerLock();
+            }
+
+            hideHUDPrompt();
+            document.getElementById('crosshair').style.opacity = '0';
+
+            startCamPos.copy(camera.position);
+            startCamQuat.copy(camera.quaternion);
+
+            const screenMesh = cabinet.screenMesh;
+            const screenWorldPos = new THREE.Vector3();
+            screenMesh.getWorldPosition(screenWorldPos);
+
+            const screenWorldQuat = new THREE.Quaternion();
+            screenMesh.getWorldQuaternion(screenWorldQuat);
+
+            const offsetDistance = 0.52;
+            const forward = new THREE.Vector3(0, 0, 1).applyQuaternion(screenWorldQuat);
+            targetCamPos.copy(screenWorldPos).addScaledVector(forward, offsetDistance);
+
+            // Orientation vers l'écran
+            targetCamQuat.copy(screenWorldQuat);
+
+            zoomStartTime = clock.getElapsedTime();
         }
 
         function exitGame() {
@@ -1402,6 +1448,29 @@
 
             const delta = Math.min(clock.getDelta(), 0.1);
             const elapsedTime = clock.getElapsedTime();
+
+            if (isZoomingIn) {
+                const elapsedTimeInZoom = elapsedTime - zoomStartTime;
+
+                // Le fondu démarre 1 seconde plus tard (à t = 1.0s)
+                if (elapsedTimeInZoom >= 1.0 && !isFadeStarted) {
+                    isFadeStarted = true;
+                    document.getElementById('fade-overlay').classList.remove('opacity-0');
+                    document.getElementById('fade-overlay').classList.add('opacity-100');
+                }
+
+                const progress = Math.min(elapsedTimeInZoom / ZOOM_DURATION, 1.0);
+                const easeProgress = progress * progress * (3 - 2 * progress); // Easing Smoothstep
+
+                camera.position.lerpVectors(startCamPos, targetCamPos, easeProgress);
+                camera.quaternion.slerpQuaternions(startCamQuat, targetCamQuat, easeProgress);
+
+                // La redirection s'effectue après l'animation complète (2s)
+                if (progress >= 1.0) {
+                    window.location.href = pendingTargetUrl;
+                    return;
+                }
+            }
 
             if (Math.abs(exitDoor.currentRotation - exitDoor.targetRotation) > 0.001) {
                 const diff = exitDoor.targetRotation - exitDoor.currentRotation;
