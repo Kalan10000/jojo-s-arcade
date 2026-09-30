@@ -1260,7 +1260,7 @@
             titleEl.innerText = "PORTE DE SORTIE";
             titleEl.className = 'font-orbitron font-extrabold text-lg md:text-xl text-pink-500';
 
-            document.getElementById('hud-url').innerText = "Traversez ou cliquez pour basculer la porte";
+            document.getElementById('hud-url').innerText = "https://jojo-s-arcade-exit-door.vercel.app/";
             document.getElementById('hud-category').innerText = "SORTIE SYSTÈME";
             
             const actionText = exitDoor.isOpen ? "CLIQUEZ/[E] POUR FERMER LA PORTE (TRAVERSEZ POUR SORTIR)" : "CLIQUEZ OU APPUYEZ SUR [E] POUR OUVRIR LA PORTE";
@@ -1371,33 +1371,7 @@
                 document.exitPointerLock();
             }
 
-            try {
-                window.close();
-                window.open('', '_self', '');
-                window.close();
-            } catch (e) {}
-
-            document.body.innerHTML = `
-                <div class="h-full w-full bg-[#040208] flex flex-col items-center justify-center text-center p-6 font-orbitron relative overflow-hidden select-none">
-                    <div class="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.3)_50%)] bg-[length:100%_4px] pointer-events-none"></div>
-
-                    <div class="relative z-10 glass-panel p-8 md:p-12 rounded-3xl border border-pink-500/40 shadow-[0_0_50px_rgba(255,0,127,0.25)] max-w-lg w-full flex flex-col items-center">
-                        
-                        <div class="text-5xl md:text-6xl text-pink-500 mb-6 animate-float-up drop-shadow-[0_0_20px_rgba(255,0,127,0.8)]">
-                            <i class="fa-solid fa-arrow-up"></i>
-                        </div>
-
-                        <h1 class="text-lg md:text-xl font-black text-white tracking-wider leading-relaxed mb-8 uppercase text-cyan-300 drop-shadow-[0_0_10px_rgba(0,240,255,0.4)]">
-                            vous voulez quitter le jeu ? alors cliquez sur le bouton fermer
-                        </h1>
-
-                        <button onclick="location.reload()" class="w-full py-3.5 bg-cyan-600 hover:bg-cyan-500 font-orbitron font-bold text-xs rounded-xl transition text-white shadow-lg shadow-cyan-600/30 flex items-center justify-center space-x-2">
-                            <i class="fa-solid fa-rotate-right"></i>
-                            <span>RÉENTRER DANS L'ARCADE</span>
-                        </button>
-                    </div>
-                </div>
-            `;
+            window.location.href = "https://jojo-s-arcade-exit-door.vercel.app/";
         }
 
         const clock = new THREE.Clock();
